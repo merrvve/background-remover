@@ -1,11 +1,46 @@
 import customtkinter
-from PIL import Image , ImageOps
+from PIL import Image , ImageOps, ImageTk
 import os
 import rembg
 import numpy as np
-from tkinter import PhotoImage
+from tkinter import PhotoImage, Canvas
 from CTkXYFrame import *
 from CTkMessagebox import CTkMessagebox
+
+class ImageCanvas(Canvas):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+        self.impil_initial = None
+        self.impil_processed = None
+        self.current_size = None
+    def showImage(self, im ,size= None):
+        if im:
+            if not size:
+                size = im.size
+            w,h = size
+            self.current_size=size
+            self.delete("all")
+            im = im.resize(size)
+            image = ImageTk.PhotoImage(im)
+            
+            self.config(width=w, height=h)
+            self.create_image(0, 0, anchor="nw", image=image)
+            if not self.impil_initial:
+                self.impil_initial = im
+            self.impil_processed = im
+            self.image=image
+            
+    def zoom_in(self):
+        w,h =self.current_size
+        self.showImage(im=self.impil_initial,size=(w*2,h*2))
+        self.current_size=(w*2,h*2)
+        
+
+    def zoom_out(self):
+        w,h =self.current_size
+        self.showImage(im=self.impil_initial,size=(w//2,h//2))
+        self.current_size=(w//2,h//2)
+        
 
 class ImageLabel(customtkinter.CTkLabel):
     def __init__(self, master, text="", image=None, **kwargs):
@@ -24,56 +59,9 @@ class ImageLabel(customtkinter.CTkLabel):
  #       self.label2 = customtkinter.CTkLabel(self, image=show_image,text='')
         self.grid(column=0, row=1, padx=10,pady=10 ,sticky="nsew")
         
-    def zoom_in(self):
-        xsize, ysize = self.current_size
-        self.showImage(im=self.pilimage,size=(xsize*2,ysize*2))
-
-    def zoom_out(self):
-        xsize, ysize = self.current_size
-        self.showImage(im=self.pilimage,size=(xsize//2,ysize//2))
 
 
 
-class ImageFrame(customtkinter.CTkFrame):
-    def __init__(self, master, label_text='', **kwargs):
-        super().__init__(master, **kwargs)
-        
-        # add widgets onto the frame, for example:
-        self.label = customtkinter.CTkLabel(self,text=label_text)
-        self.label.grid(row=0, column=0, padx=20)
-
-
-        self.image=None
-        self.label2 = customtkinter.CTkLabel(self, image=self.image, text='')
-        self.label2.grid(column=0, row=1, padx=10,pady=10 ,sticky="nsew")
-
-        self.grid_rowconfigure(1, weight=8)
-
-        # add zoom in
-        icon1 = PhotoImage(file="plus.png")
-        self.button_zoom_in = customtkinter.CTkButton(self,fg_color="transparent", text="", image=icon1, command=self.zoom_in)
-        self.button_zoom_in.grid(row=2, column=0, padx=10, pady=10, sticky="se")
-
-        self.button_zoom_out = customtkinter.CTkButton(self,fg_color="transparent", text="", image=icon1, command=self.zoom_out)
-        self.button_zoom_out.grid(row=2, column=1, padx=10, pady=10, sticky="se")
-
-    def showImage(self, im, size = None):       
-        self.master.current_image = im
-        if not size:
-            size = im.size
-        show_image = customtkinter.CTkImage(light_image=im, size=size)
-        self.label2 = customtkinter.CTkLabel(self, image=show_image,text='')
-        self.label2.grid(column=0, row=1, padx=10,pady=10 ,sticky="nsew")
-        
-    def zoom_in(self):
-        xsize, ysize = self.master.current_image.size
-
-        self.showImage(im=self.master.current_image,size=(xsize*2,ysize*2))
-
-    def zoom_out(self):
-        xsize, ysize = self.master.current_image.size
-        self.master.current_image = self.master.current_image.resize((xsize//2,ysize//2))
-        self.showImage(im=self.master.current_image)
         
 class NavbarFrame(customtkinter.CTkFrame):
     def __init__(self, master, **kwargs):
@@ -89,7 +77,7 @@ class NavbarFrame(customtkinter.CTkFrame):
         self.button_save_as.grid(row=2, column=0, padx=10, pady=10, sticky="w")
 
     def open_image(self,*args):
-        screen_size = (700,500)
+#        screen_size = (700,500)
         f_types = [('Jpg Files', '*.jpg'),('PNG Files','*.png')]
         filename= customtkinter.filedialog.askopenfilename(filetypes=f_types)
         if (filename):
@@ -98,8 +86,8 @@ class NavbarFrame(customtkinter.CTkFrame):
             self.master.original_image = im
             self.master.current_image=im
             
-            im = ImageOps.contain(im,screen_size)
-            self.master.image_label.showImage(im=im)
+#            im = ImageOps.contain(im,screen_size)
+            self.master.image_canvas.showImage(im=im)
             
             
     def remove_bg(self,*args):
@@ -117,7 +105,7 @@ class NavbarFrame(customtkinter.CTkFrame):
 
                 self.master.current_image = output_image
 
-                self.master.image_label.showImage(im=output_image)
+                self.master.image_canvas.showImage(im=output_image)
             except Exception as e:
                 CTkMessagebox(title="Error", message=f"An error occurred while removing background: {e}", icon="cancel")
 
@@ -136,7 +124,7 @@ class NavbarFrame(customtkinter.CTkFrame):
 class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
-        self.geometry("600x600")
+        self.geometry("800x500")
         self.grid_columnconfigure(1, weight=1)
 
         self.grid_rowconfigure(0, weight=8)
@@ -150,16 +138,21 @@ class App(customtkinter.CTk):
         self.sframe.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
       #  impil = Image.open('WMAkv.jpg')
       #  show_image = customtkinter.CTkImage(light_image=impil, size= impil.size)
+#        photo = ImageTk.PhotoImage(Image.open('o.png'))
+        self.image_canvas = ImageCanvas(self.sframe, width=700, height=400)
+#        self.image_canvas.create_image(0, 0, anchor="nw", image=photo)
+#        self.image_canvas.image= photo
+        self.image_canvas.grid(row=0, column=0, sticky="nsew",padx=5, pady=5)
         
-        self.image_label = ImageLabel(self.sframe, text="", image=None)
-        self.image_label.grid(row=0, column=0, sticky="nsew",padx=5, pady=5)
+        #self.image_label = ImageLabel(self.sframe, text="", image=None)
+        #self.image_label.grid(row=0, column=0, sticky="nsew",padx=5, pady=5)
         
         icon1 = PhotoImage(file="plus.png")
-        self.button_zoom_in = customtkinter.CTkButton(self,fg_color="transparent", text="", image=icon1, command=self.image_label.zoom_in)
+        self.button_zoom_in = customtkinter.CTkButton(self,fg_color="transparent", text="", image=icon1, command=self.image_canvas.zoom_in)
         self.button_zoom_in.grid(row=1, column=1, padx=10, pady=10, sticky="se")
 
         icon1 = PhotoImage(file="minus.png")
-        self.button_zoom_out = customtkinter.CTkButton(self,fg_color="transparent", text="", image=icon1, command=self.image_label.zoom_out)
+        self.button_zoom_out = customtkinter.CTkButton(self,fg_color="transparent", text="", image=icon1, command=self.image_canvas.zoom_out)
         self.button_zoom_out.grid(row=2, column=1, padx=10, pady=10, sticky="se")
         
         
