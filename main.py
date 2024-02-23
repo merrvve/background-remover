@@ -11,12 +11,61 @@ customtkinter.set_appearance_mode("light")
 customtkinter.set_default_color_theme("dark-blue")
 
 
+def hex_to_rgba(hex_string):
+    # Remove '#' from the beginning of the string, if present
+    if hex_string.startswith('#'):
+        hex_string = hex_string[1:]
+
+    # Convert hexadecimal string to RGB values
+    r = int(hex_string[0:2], 16)
+    g = int(hex_string[2:4], 16)
+    b = int(hex_string[4:6], 16)
+
+    # Set alpha value (standard value)
+    a = 255  # Assuming the alpha value is 255 (fully opaque)
+
+    # Return RGBA tuple
+    return (r, g, b, a)
+
+
 class ImageCanvas(Canvas):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
         self.impil_initial = None
         self.impil_processed = None
         self.current_size = None
+        self.rect = None
+
+        self.start_x = None
+        self.start_y = None
+        self.x = self.y = 0
+        
+    def selectArea(self):
+        self.bind("<ButtonPress-1>", self.on_button_press)
+        self.bind("<B1-Motion>", self.on_move_press)
+        self.bind("<ButtonRelease-1>", self.on_button_release)
+    def unselectArea(self):
+        self.unbind("<ButtonPress-1>")
+        self.unbind("<B1-Motion>")
+        self.unbind("<ButtonRelease-1>")        
+    def on_button_press(self, event):
+        # save mouse drag start position
+        self.start_x = event.x
+        self.start_y = event.y
+
+        # create rectangle if not yet exist
+        #if not self.rect:
+        self.rect = self.create_rectangle(self.x, self.y, 1, 1, fill="", dash=(3,5))
+
+    def on_move_press(self, event):
+        curX, curY = (event.x, event.y)
+
+        # expand rectangle as you drag the mouse
+        self.coords(self.rect, self.start_x, self.start_y, curX, curY)
+    def on_button_release(self, event):
+        self.delete(self.rect)
+        self.rect=None
+        self.unselectArea()
     def showImage(self, im, initial=False):
         if im:
             
@@ -61,11 +110,13 @@ class ZoomFrame(customtkinter.CTkFrame):
         
         icon1 = customtkinter.CTkImage(light_image=Image.open("zoom-in.png"))
         self.button_zoom_in = customtkinter.CTkButton(self, width=50,fg_color="transparent", text="", image=icon1, command=self.master.image_canvas.zoom_in)
-        self.button_zoom_in.grid(row=0, column=0, padx=2, pady=2, sticky="se")
+        self.button_zoom_in.grid(row=0, column=1, padx=2, pady=2, sticky="se")
 
         icon1 = customtkinter.CTkImage(light_image=Image.open("zoom-out.png"))
         self.button_zoom_out = customtkinter.CTkButton(self, width=50,fg_color="transparent", text="", image=icon1, command=self.master.image_canvas.zoom_out)
-        self.button_zoom_out.grid(row=0, column=1, padx=2, pady=2, sticky="se")
+        self.button_zoom_out.grid(row=0, column=2, padx=2, pady=2, sticky="se")
+        
+        
  
 class MenubarFrame(Menu):
     def __init__(self, master, **kwargs):
@@ -90,6 +141,11 @@ class MenubarFrame(Menu):
         self.add_cascade(label="File", menu=self.file_menu)
         
         self.edit_menu = Menu(self, tearoff=0)
+        self.edit_menu.add_command(
+            label='Select',
+            command=self.master.image_canvas.selectArea,
+            font=("Arial", 14)
+        )   
         self.edit_menu.add_command(
             label='Remove Background',
             command=self.master.image_processor.remove_bg,
@@ -140,6 +196,10 @@ class NavbarFrame(customtkinter.CTkFrame):
 
         self.button_rotate = customtkinter.CTkButton(self, text="Rotate", command=self.master.image_processor.rotate)
         self.button_rotate.grid(row=5, column=0, padx=10, pady=10, sticky="w")
+
+        self.button_select = customtkinter.CTkButton(self, text="Select", command=self.master.image_canvas.selectArea)
+        self.button_select.grid(row=6, column=0, padx=10, pady=10, sticky="w")
+
 
     def open_image(self,*args):
         f_types = [('Jpg Files', '*.jpg'),('PNG Files','*.png')]
@@ -203,13 +263,15 @@ class ImageProcessor():
         else:
             CTkMessagebox(title="Info", message="Please load an image and remove background to add background image.")
 
+    
 
     def add_bgcolor(self):
         if (self.master.image_canvas.impil_processed):
             try:
                 pick_color = AskColor() # open the color picker
                 color = pick_color.get() # get the color string
-                bg = Image.new('RGBA', self.master.image_canvas.impil_processed.size, (255, 0, 0, 100))
+                
+                bg = Image.new('RGBA', self.master.image_canvas.impil_processed.size, hex_to_rgba(color))
                 bg.paste(self.master.image_canvas.impil_processed,(0,0),self.master.image_canvas.impil_processed)
                 self.master.image_canvas.showImage(bg, initial=True)
             except Exception as e:
@@ -221,7 +283,8 @@ class ImageProcessor():
     def rotate(self):
         if (self.master.image_canvas.impil_processed):
             try:
-                pass
+                self.master.image_canvas.impil_processed = self.master.image_canvas.impil_processed.rotate(90, expand=True)
+                self.master.image_canvas.showImage(self.master.image_canvas.impil_processed, initial=True)
             except Exception as e:
                 CTkMessagebox(title="Error", message=f"An error occurred while rotating: {e}", icon="cancel")
         else:
@@ -237,19 +300,10 @@ class App(customtkinter.CTk):
         
         self.title("Background Remover")
         self.iconbitmap('favicon.ico')
-        self.grid_columnconfigure(1, weight=1)
-
-        self.grid_rowconfigure(0, weight=8)
-
+        
+        self.log = ""
         self.image_processor= ImageProcessor(master=self)
 
-        self.navbar_frame = NavbarFrame(master=self)
-        self.navbar_frame.grid(row=0, column=0, padx=2, pady=2)
-
-        self.menubar = MenubarFrame(master=self)
-        self.config(menu=self.menubar)
-        
-        
         self.sframe = CTkXYFrame(self)
         self.sframe.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
 
@@ -258,6 +312,21 @@ class App(customtkinter.CTk):
         
         self.zoom_frame = ZoomFrame(master=self)
         self.zoom_frame.grid(row=1, column=1, padx=2, pady=2 , sticky="se")
+
+        self.navbar_frame = NavbarFrame(master=self)
+        self.navbar_frame.grid(row=0, column=0, padx=2, pady=2)
+
+        self.menubar = MenubarFrame(master=self)
+        self.config(menu=self.menubar)
+        
+        self.logger = customtkinter.CTkLabel(master=self, text=self.log)
+        self.logger.grid(row=2, column=0, columnspan=2, padx=2, pady=2, sticky="ws")
+        
+        
+        self.grid_columnconfigure(1, weight=1)
+
+        self.grid_rowconfigure(0, weight=8)
+
     def change_mod(self):
         if self.is_dark:
             customtkinter.set_appearance_mode("light")  
