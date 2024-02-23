@@ -110,16 +110,11 @@ class MenubarFrame(Menu):
 
         self.options_menu = Menu(self, tearoff=0)
         self.options_menu.add_command(
-            label='Light Mode',
-            command=self.master.image_processor.remove_bg,
+            label='Light/Dark Mode',
+            command=self.master.change_mod,
             font=("Arial", 14)
         )        
-        self.options_menu.add_command(
-            label='Dark Mode',
-            command=self.master.image_processor.add_bgimg,
-            font=("Arial", 14)
-        ) 
-
+        
         self.add_cascade(label="Options", menu=self.options_menu)
 
 
@@ -161,12 +156,13 @@ class NavbarFrame(customtkinter.CTkFrame):
         if(self.master.image_canvas.impil_processed):
             files = [('PNG Files','*.png')]
             file = customtkinter.filedialog.asksaveasfilename(filetypes = files, defaultextension = files) 
-        if (file):
-            try:
-                self.master.image_canvas.impil_processed.save(file, format='PNG')
-            except Exception as e:
-                CTkMessagebox(title="Error", message=f"An error occurred while saving the image: {e}", icon="cancel")
-
+            if (file):
+                try:
+                    self.master.image_canvas.impil_processed.save(file, format='PNG')
+                except Exception as e:
+                    CTkMessagebox(title="Error", message=f"An error occurred while saving the image: {e}", icon="cancel")
+        else:
+            CTkMessagebox(title="Info", message="No images found to save.")
 
 class ImageProcessor():
     def __init__(self, master, **kwargs):
@@ -190,7 +186,8 @@ class ImageProcessor():
                 self.master.image_canvas.showImage(im=output_image,initial=True)
             except Exception as e:
                 CTkMessagebox(title="Error", message=f"An error occurred while removing background: {e}", icon="cancel")
-
+        else:
+            CTkMessagebox(title="Info", message="Please load an image to remove background.")
     def add_bgimg(self):
         if (self.master.image_canvas.impil_processed):
             f_types = [('Jpg Files', '*.jpg'),('PNG Files','*.png')]
@@ -203,6 +200,8 @@ class ImageProcessor():
                     self.master.image_canvas.showImage(im, initial=True)
                 except Exception as e:
                     CTkMessagebox(title="Error", message=f"An error occurred while adding background image: {e}", icon="cancel")
+        else:
+            CTkMessagebox(title="Info", message="Please load an image and remove background to add background image.")
 
 
     def add_bgcolor(self):
@@ -215,6 +214,9 @@ class ImageProcessor():
                 self.master.image_canvas.showImage(bg, initial=True)
             except Exception as e:
                 CTkMessagebox(title="Error", message=f"An error occurred while adding background color: {e}", icon="cancel")
+        else:
+            CTkMessagebox(title="Info", message="Please open an image and remove background to change the background color.")
+
 
     def rotate(self):
         if (self.master.image_canvas.impil_processed):
@@ -222,12 +224,16 @@ class ImageProcessor():
                 pass
             except Exception as e:
                 CTkMessagebox(title="Error", message=f"An error occurred while rotating: {e}", icon="cancel")
+        else:
+            CTkMessagebox(title="Info", message="Please load an image first.")
+
 
 
 class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
         self.geometry("800x500")
+        self.is_dark=False
         
         self.title("Background Remover")
         self.iconbitmap('favicon.ico')
@@ -252,7 +258,13 @@ class App(customtkinter.CTk):
         
         self.zoom_frame = ZoomFrame(master=self)
         self.zoom_frame.grid(row=1, column=1, padx=2, pady=2 , sticky="se")
-        
+    def change_mod(self):
+        if self.is_dark:
+            customtkinter.set_appearance_mode("light")  
+            self.is_dark=False
+        else:
+            customtkinter.set_appearance_mode("dark")  
+            self.is_dark=True
 
 app = App()
 app.mainloop()
