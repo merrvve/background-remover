@@ -6,8 +6,10 @@ import numpy as np
 from tkinter import PhotoImage, Canvas, Menu
 from CTkXYFrame import *
 from CTkMessagebox import CTkMessagebox
+from CTkColorPicker import *
 customtkinter.set_appearance_mode("light")  
 customtkinter.set_default_color_theme("dark-blue")
+
 
 class ImageCanvas(Canvas):
     def __init__(self, master, **kwargs):
@@ -72,15 +74,21 @@ class NavbarFrame(customtkinter.CTkFrame):
         self.button_open = customtkinter.CTkButton(self, text="Open File", command=self.open_image)
         self.button_open.grid(row=0, column=0, padx=10, pady=10, sticky="w")
 
-        self.button_rembg = customtkinter.CTkButton(self, text="Remove Background", command=self.remove_bg)
+        self.button_rembg = customtkinter.CTkButton(self, text="Remove Background", command=self.master.image_processor.remove_bg)
         self.button_rembg.grid(row=1, column=0, padx=10, pady=10, sticky="w")
         
 
         self.button_save_as = customtkinter.CTkButton(self, text="Save As...", command=self.save_image_as)
         self.button_save_as.grid(row=2, column=0, padx=10, pady=10, sticky="w")
 
-        self.button_add_bgimg = customtkinter.CTkButton(self, text="Add Background Img", command=self.add_bgimg)
+        self.button_add_bgimg = customtkinter.CTkButton(self, text="Add Background Img", command=self.master.image_processor.add_bgimg)
         self.button_add_bgimg.grid(row=3, column=0, padx=10, pady=10, sticky="w")
+
+        self.button_add_bgcolor = customtkinter.CTkButton(self, text="Add Background Color", command=self.master.image_processor.add_bgcolor)
+        self.button_add_bgcolor.grid(row=4, column=0, padx=10, pady=10, sticky="w")
+
+        self.button_rotate = customtkinter.CTkButton(self, text="Rotate", command=self.master.image_processor.rotate)
+        self.button_rotate.grid(row=5, column=0, padx=10, pady=10, sticky="w")
 
     def open_image(self,*args):
         f_types = [('Jpg Files', '*.jpg'),('PNG Files','*.png')]
@@ -90,8 +98,24 @@ class NavbarFrame(customtkinter.CTkFrame):
             self.master.image_canvas.impil_initial = im
 
             self.master.image_canvas.showImage(im=im, initial=True)
-            
-            
+                        
+                
+    def save_image_as(self,*args):
+        file = None
+        if(self.master.image_canvas.impil_processed):
+            files = [('PNG Files','*.png')]
+            file = customtkinter.filedialog.asksaveasfilename(filetypes = files, defaultextension = files) 
+        if (file):
+            try:
+                self.master.image_canvas.impil_processed.save(file, format='PNG')
+            except Exception as e:
+                CTkMessagebox(title="Error", message=f"An error occurred while saving the image: {e}", icon="cancel")
+
+
+class ImageProcessor():
+    def __init__(self, master, **kwargs):
+        self.master=master
+    
     def remove_bg(self,*args):
         # Load the input image
         input_image = self.master.image_canvas.impil_initial
@@ -111,32 +135,38 @@ class NavbarFrame(customtkinter.CTkFrame):
             except Exception as e:
                 CTkMessagebox(title="Error", message=f"An error occurred while removing background: {e}", icon="cancel")
 
-                
-    def save_image_as(self,*args):
-        file = None
-        if(self.master.image_canvas.impil_processed):
-            files = [('PNG Files','*.png')]
-            file = customtkinter.filedialog.asksaveasfilename(filetypes = files, defaultextension = files) 
-        if (file):
-            try:
-                self.master.image_canvas.impil_processed.save(file, format='PNG')
-            except Exception as e:
-                CTkMessagebox(title="Error", message=f"An error occurred while saving the image: {e}", icon="cancel")
-
     def add_bgimg(self):
         if (self.master.image_canvas.impil_processed):
             f_types = [('Jpg Files', '*.jpg'),('PNG Files','*.png')]
             filename= customtkinter.filedialog.askopenfilename(filetypes=f_types)
             if (filename):
-                im = Image.open(filename)
-                im = im.resize(self.master.image_canvas.impil_processed.size)
-                im.paste(self.master.image_canvas.impil_processed,(0,0),self.master.image_canvas.impil_processed)
-                #alpha_mask = self.master.image_canvas.impil_processed.split()[3]
-                #inverted_mask = Image.eval(alpha_mask, lambda p: 255 if p == 0 else 0)
-                #self.master.image_canvas.impil_processed.paste(im, (0, 0), mask=inverted_mask)
-                
-                self.master.image_canvas.showImage(im, initial=True)
-            
+                try:
+                    im = Image.open(filename)
+                    im = im.resize(self.master.image_canvas.impil_processed.size)
+                    im.paste(self.master.image_canvas.impil_processed,(0,0),self.master.image_canvas.impil_processed)
+                    self.master.image_canvas.showImage(im, initial=True)
+                except Exception as e:
+                    CTkMessagebox(title="Error", message=f"An error occurred while adding background image: {e}", icon="cancel")
+
+
+    def add_bgcolor(self):
+        if (self.master.image_canvas.impil_processed):
+            try:
+                pick_color = AskColor() # open the color picker
+                color = pick_color.get() # get the color string
+                bg = Image.new('RGBA', self.master.image_canvas.impil_processed.size, (255, 0, 0, 100))
+                bg.paste(self.master.image_canvas.impil_processed,(0,0),self.master.image_canvas.impil_processed)
+                self.master.image_canvas.showImage(bg, initial=True)
+            except Exception as e:
+                CTkMessagebox(title="Error", message=f"An error occurred while adding background color: {e}", icon="cancel")
+
+    def rotate(self):
+        if (self.master.image_canvas.impil_processed):
+            try:
+                pass
+            except Exception as e:
+                CTkMessagebox(title="Error", message=f"An error occurred while rotating: {e}", icon="cancel")
+
 
 class App(customtkinter.CTk):
     def __init__(self):
@@ -149,7 +179,8 @@ class App(customtkinter.CTk):
 
         self.grid_rowconfigure(0, weight=8)
 
-
+        self.image_processor= ImageProcessor(master=self)
+        
         self.navbar_frame = NavbarFrame(master=self)
         self.navbar_frame.grid(row=0, column=0, padx=2, pady=2)
         
