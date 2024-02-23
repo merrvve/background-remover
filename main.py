@@ -67,6 +67,62 @@ class ZoomFrame(customtkinter.CTkFrame):
         self.button_zoom_out = customtkinter.CTkButton(self, width=50,fg_color="transparent", text="", image=icon1, command=self.master.image_canvas.zoom_out)
         self.button_zoom_out.grid(row=0, column=1, padx=2, pady=2, sticky="se")
  
+class MenubarFrame(Menu):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+        self.file_menu = Menu(self, tearoff=0)
+        self.file_menu.add_command(
+            label='Open',
+            command=self.master.navbar_frame.open_image,
+            font=("Arial", 14)
+        )        
+        self.file_menu.add_command(
+            label='Save As',
+            command=self.master.navbar_frame.save_image_as,
+            font=("Arial", 14)
+        )        
+
+        self.file_menu.add_command(
+            label='Exit',
+            command=self.master.destroy,
+            font=("Arial", 14)
+        )        
+        self.add_cascade(label="File", menu=self.file_menu)
+        
+        self.edit_menu = Menu(self, tearoff=0)
+        self.edit_menu.add_command(
+            label='Remove Background',
+            command=self.master.image_processor.remove_bg,
+            font=("Arial", 14)
+        )        
+        self.edit_menu.add_command(
+            label='Add Background Image',
+            command=self.master.image_processor.add_bgimg,
+            font=("Arial", 14)
+        )        
+
+        self.edit_menu.add_command(
+            label='Add Background Color',
+            command=self.master.image_processor.add_bgcolor,
+            font=("Arial", 14)
+        )        
+        self.add_cascade(label="Edit", menu=self.edit_menu)
+
+        self.options_menu = Menu(self, tearoff=0)
+        self.options_menu.add_command(
+            label='Light Mode',
+            command=self.master.image_processor.remove_bg,
+            font=("Arial", 14)
+        )        
+        self.options_menu.add_command(
+            label='Dark Mode',
+            command=self.master.image_processor.add_bgimg,
+            font=("Arial", 14)
+        ) 
+
+        self.add_cascade(label="Options", menu=self.options_menu)
+
+
         
 class NavbarFrame(customtkinter.CTkFrame):
     def __init__(self, master, **kwargs):
@@ -180,9 +236,13 @@ class App(customtkinter.CTk):
         self.grid_rowconfigure(0, weight=8)
 
         self.image_processor= ImageProcessor(master=self)
-        
+
         self.navbar_frame = NavbarFrame(master=self)
         self.navbar_frame.grid(row=0, column=0, padx=2, pady=2)
+
+        self.menubar = MenubarFrame(master=self)
+        self.config(menu=self.menubar)
+        
         
         self.sframe = CTkXYFrame(self)
         self.sframe.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
