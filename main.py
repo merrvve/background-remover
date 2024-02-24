@@ -1,6 +1,7 @@
 import customtkinter
 from PIL import Image , ImageOps, ImageTk
 import os
+import pathlib
 import rembg
 import numpy as np
 from tkinter import PhotoImage, Canvas, Menu
@@ -202,7 +203,13 @@ class NavbarFrame(customtkinter.CTkFrame):
 
 
     def open_image(self,*args):
-        f_types = [('Jpg Files', '*.jpg'),('PNG Files','*.png')]
+        f_types = [('All Image Files', '*.{.bmp .dib .gif .jfif .jpe .jpg .jpeg .png .apng  .hdf .jp2 .j2k .jpc .jpf .jpx .j2c .icns .ico .im .iim .mpg .mpeg .tif .tiff}'), ('.BMP Files', '*.bmp'), ('.DIB Files', '*.dib'), ('.GIF Files', '*.gif'), ('.JFIF Files', '*.jfif'), ('.JPE Files', '*.jpe'), ('.JPG Files', '*.jpg'), ('.JPEG Files', '*.jpeg'), ('.PNG Files', '*.png'), ('.APNG Files', '*.apng'), ('.HDF Files', '*.hdf'), ('.JP2 Files', '*.jp2'), ('.J2K Files', '*.j2k'), ('.JPC Files', '*.jpc'), ('.JPF Files', '*.jpf'), ('.JPX Files', '*.jpx'), ('.J2C Files', '*.j2c'), ('.ICNS Files', '*.icns'), ('.ICO Files', '*.ico'), ('.TIF Files', '*.tif'), ('.TIFF Files', '*.tiff')]
+        #supported_formats = Image.registered_extensions()
+
+        # Construct a list of tuples in the format you provided
+        #f_types = [(f"{format.upper()} Files", f"*{format.lower()}") for format in supported_formats]
+        #f_types.insert(0, ("All Image Files", "*.{" + " ".join(supported_formats).lower() + "}"))
+
         filename= customtkinter.filedialog.askopenfilename(filetypes=f_types)
         if (filename):
             im = Image.open(filename)
@@ -214,13 +221,26 @@ class NavbarFrame(customtkinter.CTkFrame):
     def save_image_as(self,*args):
         file = None
         if(self.master.image_canvas.impil_processed):
-            files = [('PNG Files','*.png')]
+            files = [('PNG Files','*.png'), ('.JPG Files', '*.jpg'), ('.JPEG Files', '*.jpeg'),('.GIF Files', '*.gif'),('.BMP Files', '*.bmp')]
             file = customtkinter.filedialog.asksaveasfilename(filetypes = files, defaultextension = files) 
+            extension = pathlib.Path(file).suffix
             if (file):
-                try:
-                    self.master.image_canvas.impil_processed.save(file, format='PNG')
-                except Exception as e:
-                    CTkMessagebox(title="Error", message=f"An error occurred while saving the image: {e}", icon="cancel")
+                if extension == '.png':
+                    try:
+                        self.master.image_canvas.impil_processed.save(file, format='PNG')
+                    except Exception as e:
+                        CTkMessagebox(title="Error", message=f"An error occurred while saving the image: {e}", icon="cancel")
+                else:
+                    try:
+                        self.master.image_canvas.impil_processed.save(file)
+                    except Exception as e:
+                        if (str(e)=="cannot write mode RGBA as JPEG"):
+                            CTkMessagebox(title="Info", message="Transparent areas will be lost in jpg/jpeg format.")
+                            im = self.master.image_canvas.impil_processed.convert('RGB')
+                            im.save(file)
+                        else:
+                            CTkMessagebox(title="Error", message=f"An error occurred while saving the image: {e}", icon="cancel")
+                            
         else:
             CTkMessagebox(title="Info", message="No images found to save.")
 
