@@ -2,15 +2,33 @@ import customtkinter
 from PIL import Image , ImageOps, ImageTk
 import os
 import pathlib
-import rembg
 import numpy as np
 from tkinter import PhotoImage, Canvas, Menu
 from CTkXYFrame import *
 from CTkMessagebox import CTkMessagebox
 from CTkColorPicker import *
+import sys
+from threading import Thread
+import time
 customtkinter.set_appearance_mode("light")  
 customtkinter.set_default_color_theme("dark-blue")
 
+rembg_imported = False
+rembg_module = None
+def import_rembg():
+    global rembg_imported
+    global rembg_module
+    try:
+        import rembg
+        rembg_module=rembg
+        rembg_imported = True
+        print("rembg loaded")
+    except ImportError:
+        rembg_imported = False
+
+# Create a separate thread for importing rembg
+import_thread = Thread(target=import_rembg)
+import_thread.start()
 
 def hex_to_rgba(hex_string):
     # Remove '#' from the beginning of the string, if present
@@ -109,12 +127,12 @@ class ZoomFrame(customtkinter.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
         
-        icon1 = customtkinter.CTkImage(light_image=Image.open("zoom-in.png"))
-        self.button_zoom_in = customtkinter.CTkButton(self, width=50,fg_color="transparent", text="", image=icon1, command=self.master.image_canvas.zoom_in)
+        #icon1 = customtkinter.CTkImage(light_image=Image.open("zoom-in.png"))
+        self.button_zoom_in = customtkinter.CTkButton(self, width=50, text="Zoom In", command=self.master.image_canvas.zoom_in)
         self.button_zoom_in.grid(row=0, column=1, padx=2, pady=2, sticky="se")
 
-        icon1 = customtkinter.CTkImage(light_image=Image.open("zoom-out.png"))
-        self.button_zoom_out = customtkinter.CTkButton(self, width=50,fg_color="transparent", text="", image=icon1, command=self.master.image_canvas.zoom_out)
+        #icon1 = customtkinter.CTkImage(light_image=Image.open("zoom-out.png"))
+        self.button_zoom_out = customtkinter.CTkButton(self, width=50, text="Zoom Out", command=self.master.image_canvas.zoom_out)
         self.button_zoom_out.grid(row=0, column=2, padx=2, pady=2, sticky="se")
         
         
@@ -249,25 +267,29 @@ class ImageProcessor():
         self.master=master
     
     def remove_bg(self,*args):
-        # Load the input image
-        input_image = self.master.image_canvas.impil_initial
-        output_image = None
-        if (input_image):
-            try:
-                # Convert the input image to a numpy array
-                input_array = np.array(input_image)
-                # Apply background removal using rembg
-                output_array = rembg.remove(input_array)
-                # Create a PIL Image from the output array
-                output_image = Image.fromarray(output_array)
-
-                self.master.image_canvas.impil_processed = output_image
-
-                self.master.image_canvas.showImage(im=output_image,initial=True)
-            except Exception as e:
-                CTkMessagebox(title="Error", message=f"An error occurred while removing background: {e}", icon="cancel")
+        global rembg_imported
+        if not rembg_imported:
+            CTkMessagebox(title="Info", message="Please wait until rembg package is loaded.")
         else:
-            CTkMessagebox(title="Info", message="Please load an image to remove background.")
+            # Load the input image
+            input_image = self.master.image_canvas.impil_initial
+            output_image = None
+            if (input_image):
+                try:
+                    # Convert the input image to a numpy array
+                    input_array = np.array(input_image)
+                    # Apply background removal using rembg
+                    output_array = rembg_module.remove(input_array)
+                    # Create a PIL Image from the output array
+                    output_image = Image.fromarray(output_array)
+
+                    self.master.image_canvas.impil_processed = output_image
+
+                    self.master.image_canvas.showImage(im=output_image,initial=True)
+                except Exception as e:
+                    CTkMessagebox(title="Error", message=f"An error occurred while removing background: {e}", icon="cancel")
+            else:
+                CTkMessagebox(title="Info", message="Please load an image to remove background.")
     def add_bgimg(self):
         if (self.master.image_canvas.impil_processed):
             f_types = [('Jpg Files', '*.jpg'),('PNG Files','*.png')]
@@ -309,17 +331,28 @@ class ImageProcessor():
                 CTkMessagebox(title="Error", message=f"An error occurred while rotating: {e}", icon="cancel")
         else:
             CTkMessagebox(title="Info", message="Please load an image first.")
+class ToplevelWindow(customtkinter.CTkToplevel):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.geometry("400x300")
 
+        self.label = customtkinter.CTkLabel(self, text="Loading...")
+        self.label.pack(padx=20, pady=20)
 
-
+    def close_window(self):
+        self.destroy()
+        
+        
 class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
+        self.loaded = False
+        self.loading_screen_window = ToplevelWindow(master=self)
+        Thread(target=self.loading_screen).start()
         self.geometry("800x500")
         self.is_dark=False
         
         self.title("Background Remover")
-        self.iconbitmap('favicon.ico')
         
         self.log = ""
         self.image_processor= ImageProcessor(master=self)
@@ -346,7 +379,25 @@ class App(customtkinter.CTk):
         self.grid_columnconfigure(1, weight=1)
 
         self.grid_rowconfigure(0, weight=8)
+    def loading_screen(self):
+        idx=0
+        while not self.loaded:
+            chars = r"/—\|" 
+            sys.stdout.write('\r'+'loading...'+chars[idx])
+            sys.stdout.flush()
+            if idx==len(chars)-1:
+                idx=0
+            else:
+                idx+=1
+            time.sleep(.1)
+        else:
+            sys.stdout.write('\n'+'loaded')
+            self.loading_screen_window.close_window()
 
+    def start(self):
+        self.loaded=True
+        self.mainloop()
+        
     def change_mod(self):
         if self.is_dark:
             customtkinter.set_appearance_mode("light")  
@@ -356,4 +407,5 @@ class App(customtkinter.CTk):
             self.is_dark=True
 
 app = App()
-app.mainloop()
+app.start()
+import_thread.join()
