@@ -78,6 +78,25 @@ class ImageCanvas(Canvas):
         self.start_x = None
         self.start_y = None
         self.x = self.y = 0
+      
+    def selectPoint(self):
+        self.bind("<ButtonPress-1>", self.on_button_press_point)
+        self.bind("<ButtonRelease-1>", self.on_button_release_point)
+    def on_button_press_point(self, event):
+        # save mouse drag start position
+        self.start_x = event.x
+        self.start_y = event.y
+        w, h=int(self.cget('width')),int(self.cget('height'))
+        w_im, h_im = self.impil_processed.size
+        print(w_im,h_im,w,h)
+        ratio = w/w_im
+        print(ratio,self.start_x/ratio,self.start_y/ratio)
+        
+        
+        
+    def on_button_release_point(self, event):
+        self.unbind("<ButtonPress-1>")
+        self.unbind("<ButtonRelease-1>")  
         
     def selectArea(self):
         self.bind("<ButtonPress-1>", self.on_button_press)
@@ -91,7 +110,6 @@ class ImageCanvas(Canvas):
         # save mouse drag start position
         self.start_x = event.x
         self.start_y = event.y
-
         # create rectangle if not yet exist
         #if not self.rect:
         self.rect = self.create_rectangle(self.x, self.y, 1, 1, fill="", dash=(3,5))
@@ -157,8 +175,36 @@ class ZoomFrame(customtkinter.CTkFrame):
         self.button_zoom_out = customtkinter.CTkButton(self, width=50, fg_color="transparent", text="", image =icon1, command=self.master.image_canvas.zoom_out)
         self.button_zoom_out.grid(row=0, column=2, padx=2, pady=2, sticky="se")
         
+class CustomInputDialog(customtkinter.CTkToplevel):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.title('Options')
+        self.geometry('300x500')
+        self.inputs = [None, None, None]  # Initialize inputs with None
+        self.radius_label = customtkinter.CTkLabel(self, text="Edge blur radius:")
+        self.radius_label.grid(row=0,column=0,padx=10,pady=10)
+        self.input2 = customtkinter.CTkEntry(self, placeholder_text="0")
+        self.input2.grid(row=1,column=0,padx=10,pady=10)
         
- 
+        self.post_label = customtkinter.CTkLabel(self, text="Postprocess")
+        self.post_label.grid(row=2,column=0,padx=10,pady=10)
+        self.input3 = customtkinter.CTkEntry(self, placeholder_text="False")
+        self.input3.grid(row=3,column=0,padx=10,pady=10)
+        self.button = customtkinter.CTkButton(self, text="OK", command=self.ok_button_click)
+        self.button.grid(row=4,column=0, padx=30, pady=30)
+    def get_inputs(self):
+        return self.inputs
+
+    def ok_button_click(self):
+        try:
+            num1 = self.input2.get()
+            self.inputs = [num1, 2, False]
+            print(self.inputs)
+        except ValueError:
+            # Handle non-numeric inputs
+            pass
+        self.destroy()
+     
 class MenubarFrame(Menu):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
@@ -251,7 +297,7 @@ class NavbarFrame(customtkinter.CTkFrame):
         self.button_rotate = customtkinter.CTkButton(self, text="Rotate", command=self.master.image_processor.rotate)
         self.button_rotate.grid(row=5, column=0, padx=10, pady=10, sticky="w")
 
-        self.button_select = customtkinter.CTkButton(self, text="Select", command=self.master.image_canvas.selectArea)
+        self.button_select = customtkinter.CTkButton(self, text="Select", command=self.master.image_canvas.selectPoint)
         self.button_select.grid(row=6, column=0, padx=10, pady=10, sticky="w")
 
         self.button_undo = customtkinter.CTkButton(self, text="Undo", command=self.master.image_processor.undo)
@@ -260,6 +306,18 @@ class NavbarFrame(customtkinter.CTkFrame):
         self.button_reset = customtkinter.CTkButton(self, text="Reset", command=self.master.image_processor.reset)
         self.button_reset.grid(row=8, column=0, padx=10, pady=10, sticky="w")
         
+        self.button_input = customtkinter.CTkButton(self, text="dene", command=self.input_button_click_event)
+        self.button_input.grid(row=9, column=0, padx=10, pady=10, sticky="w")
+
+    def input_button_click_event(self):
+        dialog = CustomInputDialog(self)
+        dialog.lift()
+        dialog.focus_force()
+        dialog.grab_set()
+        self.wait_window(dialog)
+        
+
+
     def open_image(self,*args):
         f_types = [('All Image Files', '*.{.bmp .dib .gif .jfif .jpe .jpg .jpeg .png .apng  .hdf .jp2 .j2k .jpc .jpf .jpx .j2c .icns .ico .im .iim .mpg .mpeg .tif .tiff}'), ('.BMP Files', '*.bmp'), ('.DIB Files', '*.dib'), ('.GIF Files', '*.gif'), ('.JFIF Files', '*.jfif'), ('.JPE Files', '*.jpe'), ('.JPG Files', '*.jpg'), ('.JPEG Files', '*.jpeg'), ('.PNG Files', '*.png'), ('.APNG Files', '*.apng'), ('.HDF Files', '*.hdf'), ('.JP2 Files', '*.jp2'), ('.J2K Files', '*.j2k'), ('.JPC Files', '*.jpc'), ('.JPF Files', '*.jpf'), ('.JPX Files', '*.jpx'), ('.J2C Files', '*.j2c'), ('.ICNS Files', '*.icns'), ('.ICO Files', '*.ico'), ('.TIF Files', '*.tif'), ('.TIFF Files', '*.tiff')]
         #supported_formats = Image.registered_extensions()
@@ -462,7 +520,7 @@ class ImageProcessor():
          
 
         
-class ToplevelWindow(customtkinter.CTkToplevel):
+class LoadingWindow(customtkinter.CTkToplevel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.geometry("300x100")
@@ -518,7 +576,7 @@ class App(customtkinter.CTk):
             self.is_dark=True
             
     def import_modules(self):
-        toplevel_window = ToplevelWindow(self)
+        toplevel_window = LoadingWindow(self)
         toplevel_window.focus()
         self.iconify()
         import_custom_modules()
