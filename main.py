@@ -1,5 +1,5 @@
 import customtkinter
-from tkinter import PhotoImage, Canvas, Menu
+from tkinter import PhotoImage, Canvas, Menu, filedialog
 from CTkXYFrame import *
 from CTkMessagebox import CTkMessagebox
 from CTkColorPicker import *
@@ -7,18 +7,21 @@ from threading import Thread
 import pathlib
 import sys
 import os      
+import skimage.exposure
 
 imported = False
-rembg = None
+remove = None
 
 array= None
 Image = None
 ImageOps=None
 ImageTk = None
-from numpy import array
-from PIL import Image , ImageOps, ImageTk
+import numpy as np
+from PIL import Image , ImageOps, ImageTk, ImageDraw, ImageFilter
 customtkinter.set_appearance_mode("light")  
 customtkinter.set_default_color_theme("dark-blue")
+
+
 
 def resource_path(relative_path1,relative_path2):
     try:
@@ -31,13 +34,13 @@ def resource_path(relative_path1,relative_path2):
 def import_custom_modules():
     # Simulate loading time
     global imported
-    global rembg
+    global remove
     #global array
     #global Image
     #global ImageOps
     #global ImageTk
     try:
-        import rembg
+        from rembg import remove
         imported = True
     except ImportError:
         imported = False
@@ -180,6 +183,16 @@ class MenubarFrame(Menu):
         
         self.edit_menu = Menu(self, tearoff=0)
         self.edit_menu.add_command(
+            label='Undo',
+            command=self.master.image_processor.undo,
+            font=("Arial", 14)
+        )
+        self.edit_menu.add_command(
+            label='Reset',
+            command=self.master.image_processor.reset,
+            font=("Arial", 14)
+        )
+        self.edit_menu.add_command(
             label='Select',
             command=self.master.image_canvas.selectArea,
             font=("Arial", 14)
@@ -232,13 +245,21 @@ class NavbarFrame(customtkinter.CTkFrame):
         self.button_add_bgcolor = customtkinter.CTkButton(self, text="Add Background Color", command=self.master.image_processor.add_bgcolor)
         self.button_add_bgcolor.grid(row=4, column=0, padx=10, pady=10, sticky="w")
 
+#        self.button_add_shadow = customtkinter.CTkButton(self, text="Add Shadow", command=self.master.image_processor.add_shadow)
+#        self.button_add_shadow.grid(row=5, column=0, padx=10, pady=10, sticky="w")
+
         self.button_rotate = customtkinter.CTkButton(self, text="Rotate", command=self.master.image_processor.rotate)
         self.button_rotate.grid(row=5, column=0, padx=10, pady=10, sticky="w")
 
         self.button_select = customtkinter.CTkButton(self, text="Select", command=self.master.image_canvas.selectArea)
         self.button_select.grid(row=6, column=0, padx=10, pady=10, sticky="w")
 
+        self.button_undo = customtkinter.CTkButton(self, text="Undo", command=self.master.image_processor.undo)
+        self.button_undo.grid(row=7, column=0, padx=10, pady=10, sticky="w")
 
+        self.button_reset = customtkinter.CTkButton(self, text="Reset", command=self.master.image_processor.reset)
+        self.button_reset.grid(row=8, column=0, padx=10, pady=10, sticky="w")
+        
     def open_image(self,*args):
         f_types = [('All Image Files', '*.{.bmp .dib .gif .jfif .jpe .jpg .jpeg .png .apng  .hdf .jp2 .j2k .jpc .jpf .jpx .j2c .icns .ico .im .iim .mpg .mpeg .tif .tiff}'), ('.BMP Files', '*.bmp'), ('.DIB Files', '*.dib'), ('.GIF Files', '*.gif'), ('.JFIF Files', '*.jfif'), ('.JPE Files', '*.jpe'), ('.JPG Files', '*.jpg'), ('.JPEG Files', '*.jpeg'), ('.PNG Files', '*.png'), ('.APNG Files', '*.apng'), ('.HDF Files', '*.hdf'), ('.JP2 Files', '*.jp2'), ('.J2K Files', '*.j2k'), ('.JPC Files', '*.jpc'), ('.JPF Files', '*.jpf'), ('.JPX Files', '*.jpx'), ('.J2C Files', '*.j2c'), ('.ICNS Files', '*.icns'), ('.ICO Files', '*.ico'), ('.TIF Files', '*.tif'), ('.TIFF Files', '*.tiff')]
         #supported_formats = Image.registered_extensions()
@@ -247,7 +268,7 @@ class NavbarFrame(customtkinter.CTkFrame):
         #f_types = [(f"{format.upper()} Files", f"*{format.lower()}") for format in supported_formats]
         #f_types.insert(0, ("All Image Files", "*.{" + " ".join(supported_formats).lower() + "}"))
 
-        filename= customtkinter.filedialog.askopenfilename(filetypes=f_types)
+        filename= filedialog.askopenfilename(filetypes=f_types)
         if (filename):
             im = Image.open(filename)
             self.master.image_canvas.impil_initial = im
@@ -259,7 +280,7 @@ class NavbarFrame(customtkinter.CTkFrame):
         file = None
         if(self.master.image_canvas.impil_processed):
             files = [('PNG Files','*.png'), ('.JPG Files', '*.jpg'), ('.JPEG Files', '*.jpeg'),('.GIF Files', '*.gif'),('.BMP Files', '*.bmp')]
-            file = customtkinter.filedialog.asksaveasfilename(filetypes = files, defaultextension = files) 
+            file = filedialog.asksaveasfilename(filetypes = files, defaultextension = files) 
             extension = pathlib.Path(file).suffix
             if (file):
                 if extension == '.png':
@@ -285,24 +306,62 @@ class ImageProcessor():
     def __init__(self, master, **kwargs):
         self.master=master
         self.previous_im = None
+        
+    def undo(self):
+        if self.previous_im:
+            self.master.image_canvas.impil_processed = self.previous_im
+            self.master.image_canvas.showImage(im = self.master.image_canvas.impil_processed, initial=True)
+    def reset(self):
+        self.master.image_canvas.impil_processed = self.master.image_canvas.impil_initial
+        self.master.image_canvas.showImage(im = self.master.image_canvas.impil_processed, initial=True)
+
+    def add_shadow(self, sigma=20, offset=10, opacity=0.5, shadow_shift=(15, 15)):
+        """ Create shadow for an image with a transparent background.  """
+        self.previous_im = self.master.image_canvas.impil_processed 
+            
+        img = self.master.image_canvas.impil_processed
+        img = img.convert('RGBA')
+        # Create a blurred shadow mask
+        shadow = Image.new('RGBA', (img.width + offset * 2, img.height + offset * 2), color="#FFFFFF")
+        draw = ImageDraw.Draw(shadow)
+        draw.bitmap((offset + shadow_shift[0], offset + shadow_shift[1]), img, fill=(0, 0, 0, int(255 * opacity)))
+        shadow_blurred = shadow.filter(ImageFilter.GaussianBlur(sigma))
+        
+        # Composite the shadow with the image
+        result = Image.new('RGBA', (img.width + offset * 2, img.height + offset * 2))
+        result.paste(shadow_blurred, (0, 0), mask=shadow_blurred)
+        result.paste(img, (offset, offset), mask=img)
+        self.master.image_canvas.impil_processed = result
+        self.master.image_canvas.showImage(im = self.master.image_canvas.impil_processed, initial=True)
+        return result
+
+    def get_options(self):
+        dialog = customtkinter.CTkInputDialog(text="Edge blur radius", title="Blur radius")
+        input = dialog.get_input()
+        return input
+        
     def remove_bg(self,*args):
         input_image = self.master.image_canvas.impil_initial
         output_image = None
         input_array = None
         output_array = None
-        global rembg 
+        global remove 
         global imported
         if imported:
             if (input_image):
                 self.previous_im = input_image
                 try:
                     # Convert the input image to a numpy array
-                    input_array = array(input_image)
+                    #input_array = array(input_image)
                     # Apply background removal using rembg
-                    output_array = rembg.remove(input_array)
+                    radius = int(self.get_options())
+                    output_image = remove(input_image,
+                                only_mask=True)
+                               # post_process_mask=True)  
                     # Create a PIL Image from the output array
-                    
-                    output_image = Image.fromarray(output_array)
+                    output_image = self.blur_edges(output_image, radius)
+                    output_image = self.apply_mask(input_image,output_image)
+                    #output_image = Image.fromarray(output_array)
                     if(output_image):    
                         self.master.image_canvas.impil_processed = output_image
 
@@ -312,35 +371,61 @@ class ImageProcessor():
             else:
                 CTkMessagebox(title="Info", message="Please load an image to remove background.")
         else:
-            self.master.import_modules()
-            if imported:
-                if (input_image):
-                    try:
-                        # Convert the input image to a numpy array
-                        input_array = array(input_image)
-                        # Apply background removal using rembg
-                        output_array = rembg.remove(input_array)
-                        # Create a PIL Image from the output array
-                        
-                        output_image = Image.fromarray(output_array)
-                        if(output_image):    
-                            self.master.image_canvas.impil_processed = output_image
+            CTkMessagebox(title="Error", message=f"Remove background module is not loaded properly.", icon="cancel")
+    def blur_edges(self, img, radius=3):
+        # Open image
+        
+        # Apply Gaussian blur
+        blurred_img = img.filter(ImageFilter.GaussianBlur(radius=radius))
 
-                            self.master.image_canvas.showImage(im=output_image,initial=True)
-                    except Exception as e:
-                        CTkMessagebox(title="Error", message=f"An error occurred while removing background: {e}", icon="cancel")
-                else:
-                    CTkMessagebox(title="Info", message="Please load an image to remove background.")
+        # Stretch intensity range
+        blurred_np = np.array(blurred_img)
+        stretched_np = np.clip(2.0 * blurred_np - 127.5, 0, 255).astype(np.uint8)
+        stretched_img = Image.fromarray(stretched_np)        
+        return stretched_img
+        
+        
+    def apply_mask(self, original_image, mask):
+        
+        # Convert the original image to RGBA if it's not already in RGBA format
+        if original_image.mode != "RGBA":
+            original_image = original_image.convert("RGBA")
+
+        # Convert the mask to grayscale if it's not already in grayscale
+        #if mask.mode != "L":
+         #   mask = mask.convert("L")
+        # Normalize mask values to range [0, 255]
+        normalized_mask = mask.point(lambda p: p if p > 127 else 0)
+
+            # Create a new alpha channel with modified transparency values
+        alpha = Image.new("L", original_image.size)
+        alpha.putdata(normalized_mask.getdata())
+
+        # Apply the new alpha channel to the original image
+        result = original_image.copy()
+        result.putalpha(alpha)
+        # Apply the mask to the alpha channel
+        #alpha = original_image.split()[3]  # Get the alpha channel
+        #alpha = alpha.point(lambda p: p * normalized_mask.getpixel((0, 0)) / 255)
+
+        # Create a new RGBA image with the modified alpha channel
+#        result = Image.new("RGBA", original_image.size)
+#        result.paste(original_image, (0, 0), mask=normalized_mask)
+
+        # Save the resulting image
+
+        return result
+
     def add_bgimg(self):
         if (self.master.image_canvas.impil_processed):
-            self.previous_im = self.master.image_canvas.impil_processed
             f_types = [('Jpg Files', '*.jpg'),('PNG Files','*.png')]
-            filename= customtkinter.filedialog.askopenfilename(filetypes=f_types)
+            filename= filedialog.askopenfilename(filetypes=f_types)
             if (filename):
                 try:
                     im = Image.open(filename)
                     im = im.resize(self.master.image_canvas.impil_processed.size)
                     im.paste(self.master.image_canvas.impil_processed,(0,0),self.master.image_canvas.impil_processed)
+                    self.previous_im = self.master.image_canvas.impil_processed
                     self.master.image_canvas.showImage(im, initial=True)
                 except Exception as e:
                     CTkMessagebox(title="Error", message=f"An error occurred while adding background image: {e}", icon="cancel")
@@ -369,11 +454,13 @@ class ImageProcessor():
         if (self.master.image_canvas.impil_processed):
             try:
                 self.master.image_canvas.impil_processed = self.master.image_canvas.impil_processed.rotate(90, expand=True)
-                self.master.image_canvas.showImage(self.master.image_canvas.impil_processed, initial=True)
+                self.master.image_canvas.showImage(self.master.image_canvas.impil_processed, initial=False)
             except Exception as e:
                 CTkMessagebox(title="Error", message=f"An error occurred while rotating: {e}", icon="cancel")
         else:
             CTkMessagebox(title="Info", message="Please load an image first.")
+         
+
         
 class ToplevelWindow(customtkinter.CTkToplevel):
     def __init__(self, *args, **kwargs):
