@@ -8,7 +8,7 @@ import pathlib
 import sys
 import os      
 import skimage.exposure
-
+from typing import Union, Callable
 imported = False
 remove = None
 
@@ -67,6 +67,67 @@ def hex_to_rgba(hex_string):
         return None
 
 
+class FloatSpinbox(customtkinter.CTkFrame):
+    def __init__(self, *args,
+                 width: int = 100,
+                 height: int = 32,
+                 step_size: Union[int, float] = 1,
+                 command: Callable = None,
+                 **kwargs):
+        super().__init__(*args, width=width, height=height, **kwargs)
+
+        self.step_size = step_size
+        self.command = command
+
+        self.configure(fg_color=("gray78", "gray28"))  # set frame color
+
+        self.grid_columnconfigure((0, 2), weight=0)  # buttons don't expand
+        self.grid_columnconfigure(1, weight=1)  # entry expands
+
+        self.subtract_button = customtkinter.CTkButton(self, text="-", width=height-6, height=height-6,
+                                                       command=self.subtract_button_callback)
+        self.subtract_button.grid(row=0, column=0, padx=(3, 0), pady=3)
+
+        self.entry = customtkinter.CTkEntry(self, width=width-(2*height), height=height-6, border_width=0)
+        self.entry.grid(row=0, column=1, columnspan=1, padx=3, pady=3, sticky="ew")
+
+        self.add_button = customtkinter.CTkButton(self, text="+", width=height-6, height=height-6,
+                                                  command=self.add_button_callback)
+        self.add_button.grid(row=0, column=2, padx=(0, 3), pady=3)
+
+        # default value
+        self.entry.insert(0, "0.0")
+
+    def add_button_callback(self):
+        if self.command is not None:
+            self.command()
+        try:
+            value = float(self.entry.get()) + self.step_size
+            self.entry.delete(0, "end")
+            self.entry.insert(0, value)
+        except ValueError:
+            return
+
+    def subtract_button_callback(self):
+        if self.command is not None:
+            self.command()
+        try:
+            value = float(self.entry.get()) - self.step_size
+            self.entry.delete(0, "end")
+            self.entry.insert(0, value)
+        except ValueError:
+            return
+
+    def get(self) -> Union[float, None]:
+        try:
+            return float(self.entry.get())
+        except ValueError:
+            return None
+
+    def set(self, value: float):
+        self.entry.delete(0, "end")
+        self.entry.insert(0, str(float(value)))
+
 class ImageCanvas(Canvas):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
@@ -88,9 +149,7 @@ class ImageCanvas(Canvas):
         self.start_y = event.y
         w, h=int(self.cget('width')),int(self.cget('height'))
         w_im, h_im = self.impil_processed.size
-        print(w_im,h_im,w,h)
         ratio = w/w_im
-        print(ratio,self.start_x/ratio,self.start_y/ratio)
         
         
         
@@ -179,13 +238,16 @@ class CustomInputDialog(customtkinter.CTkToplevel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.title('Options')
-        self.geometry('400x400')
+        self.geometry('400x250')
         self.inputs = [0, False, False]  # Initialize inputs with None
         self.radius_label = customtkinter.CTkLabel(self, text="Edge blur radius:")
         self.radius_label.grid(row=0,column=0,padx=10,pady=5)
-        self.input_radius = customtkinter.CTkEntry(self, placeholder_text="0")
-        self.input_radius.grid(row=0,column=1,padx=10,pady=5)
-        
+        #self.input_radius = customtkinter.CTkEntry(self, placeholder_text="0")
+        #self.input_radius.grid(row=0,column=1,padx=10,pady=5)
+        self.spinbox_1 = FloatSpinbox(self, width=150, step_size=1)
+        self.spinbox_1.grid(row=0,column=1,padx=10, pady=5)
+
+        self.spinbox_1.set(0)
         
         self.post_label = customtkinter.CTkLabel(self, text="Postprocess Mask:")
         self.post_label.grid(row=1,column=0,padx=10,pady=5)
@@ -203,19 +265,17 @@ class CustomInputDialog(customtkinter.CTkToplevel):
 
         self.button = customtkinter.CTkButton(self, text="OK", command=self.ok_button_click)
         self.button.grid(row=3,column=1, padx=30, pady=30)
-    def post_proc(self):
-        print(self.switch_var)
+
     def get_inputs(self):
         return self.inputs
 
     def ok_button_click(self):
         try:
-            num1 = self.input_radius.get()
+            num1 = self.spinbox_1.get()
             num1 = int(num1) if num1 else 0
             num2 = self.switch_var.get()
             num3 = self.alpha_mat_var.get()
             self.inputs = [num1, num2, num3]
-            print(self.inputs)
         except ValueError:
             # Handle non-numeric inputs
             pass
@@ -348,13 +408,15 @@ class ImageProcessor():
                     #input_array = array(input_image)
                     # Apply background removal using rembg
                     inputs = self.get_options()
-                    print(inputs)
+                    only_mask=False if inputs[2]==True else True
                     output_image = remove(input_image,
-                                only_mask=True)
-                               # post_process_mask=True)  
+                                only_mask=only_mask,
+                                post_process_mask=inputs[1],
+                                alpha_matting=inputs[2])  
                     # Create a PIL Image from the output array
-                    output_image = self.blur_edges(output_image,radius=int(inputs[0]))
-                    output_image = self.apply_mask(input_image,output_image)
+                    if (only_mask):
+                        output_image = self.blur_edges(output_image,radius=int(inputs[0]))
+                        output_image = self.apply_mask(input_image,output_image)
                     #output_image = Image.fromarray(output_array)
                     if(output_image):    
                         self.master.image_canvas.impil_processed = output_image
@@ -488,17 +550,7 @@ class NavbarFrame(customtkinter.CTkFrame):
 
         self.button_reset = customtkinter.CTkButton(self, text="Reset", command=self.master.image_processor.reset)
         self.button_reset.grid(row=8, column=0, padx=10, pady=10, sticky="w")
-        
-        self.button_input = customtkinter.CTkButton(self, text="dene", command=self.input_button_click_event)
-        self.button_input.grid(row=9, column=0, padx=10, pady=10, sticky="w")
-
-    def input_button_click_event(self):
-        dialog = CustomInputDialog(self)
-        dialog.lift()
-        dialog.focus_force()
-        dialog.grab_set()
-        self.wait_window(dialog)
-        
+                
 
 
     def open_image(self,*args):
