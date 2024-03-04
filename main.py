@@ -180,22 +180,27 @@ class CustomInputDialog(customtkinter.CTkToplevel):
         super().__init__(*args, **kwargs)
         self.title('Options')
         self.geometry('400x400')
-        self.inputs = [None, None, None]  # Initialize inputs with None
+        self.inputs = [0, False, False]  # Initialize inputs with None
         self.radius_label = customtkinter.CTkLabel(self, text="Edge blur radius:")
         self.radius_label.grid(row=0,column=0,padx=10,pady=5)
         self.input_radius = customtkinter.CTkEntry(self, placeholder_text="0")
         self.input_radius.grid(row=0,column=1,padx=10,pady=5)
         
         
-        self.post_label = customtkinter.CTkLabel(self, text="Postprocess Mask")
+        self.post_label = customtkinter.CTkLabel(self, text="Postprocess Mask:")
         self.post_label.grid(row=1,column=0,padx=10,pady=5)
         
-        self.switch_var = customtkinter.StringVar(value="on")
-        self.switch_post = customtkinter.CTkSwitch(self, text="Post Process Mask", command=self.post_proc, variable=self.switch_var, onvalue="on", offvalue="off")
+        self.switch_var = customtkinter.BooleanVar(value=False)
+        self.switch_post = customtkinter.CTkSwitch(self, text="", variable=self.switch_var, onvalue=True, offvalue=False)
         self.switch_post.grid(row=1,column=1,padx=10,pady=5)
 
-        self.input3 = customtkinter.CTkEntry(self, placeholder_text="False")
-        self.input3.grid(row=2,column=1,padx=10,pady=10)
+        self.alpha_mat_label = customtkinter.CTkLabel(self, text="Alpha matting:")
+        self.alpha_mat_label.grid(row=2,column=0,padx=10,pady=5)
+        
+        self.alpha_mat_var = customtkinter.BooleanVar(value=False)
+        self.alpha_mat = customtkinter.CTkSwitch(self, text="", variable=self.alpha_mat_var, onvalue=True, offvalue=False)
+        self.alpha_mat.grid(row=2,column=1,padx=10,pady=5)
+
         self.button = customtkinter.CTkButton(self, text="OK", command=self.ok_button_click)
         self.button.grid(row=3,column=1, padx=30, pady=30)
     def post_proc(self):
@@ -206,8 +211,10 @@ class CustomInputDialog(customtkinter.CTkToplevel):
     def ok_button_click(self):
         try:
             num1 = self.input_radius.get()
+            num1 = int(num1) if num1 else 0
             num2 = self.switch_var.get()
-            self.inputs = [num1, num2, False]
+            num3 = self.alpha_mat_var.get()
+            self.inputs = [num1, num2, num3]
             print(self.inputs)
         except ValueError:
             # Handle non-numeric inputs
@@ -316,9 +323,15 @@ class ImageProcessor():
         return result
 
     def get_options(self):
-        dialog = customtkinter.CTkInputDialog(text="Edge blur radius", title="Blur radius")
-        input = dialog.get_input()
-        return input
+        #dialog = customtkinter.CTkInputDialog(text="Edge blur radius", title="Blur radius")
+        #input = dialog.get_input()
+        dialog = CustomInputDialog(self.master)
+        dialog.lift()
+        dialog.focus_force()
+        dialog.grab_set()
+        self.master.wait_window(dialog)
+        inputs=dialog.get_inputs()
+        return inputs
         
     def remove_bg(self,*args):
         input_image = self.master.image_canvas.impil_initial
@@ -334,12 +347,13 @@ class ImageProcessor():
                     # Convert the input image to a numpy array
                     #input_array = array(input_image)
                     # Apply background removal using rembg
-                    radius = int(self.get_options())
+                    inputs = self.get_options()
+                    print(inputs)
                     output_image = remove(input_image,
                                 only_mask=True)
                                # post_process_mask=True)  
                     # Create a PIL Image from the output array
-                    output_image = self.blur_edges(output_image, radius)
+                    output_image = self.blur_edges(output_image,radius=int(inputs[0]))
                     output_image = self.apply_mask(input_image,output_image)
                     #output_image = Image.fromarray(output_array)
                     if(output_image):    
