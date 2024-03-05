@@ -17,6 +17,7 @@ class LoadingWindow(customtkinter.CTkToplevel):
         super().__init__(*args, **kwargs)
         self.geometry("300x100")
         self.title('Process')
+        self.config(cursor="watch")
         self.label = customtkinter.CTkLabel(self, text="Loading modules...")
         self.label.pack(padx=20, pady=20)
 
@@ -72,6 +73,7 @@ class App(customtkinter.CTk):
         self.iconify()
         import_custom_modules()
         toplevel_window.destroy()
+        self.config(cursor="arrow")
         self.deiconify()
 
     

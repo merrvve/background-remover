@@ -80,14 +80,19 @@ class ImageProcessor():
     def lasso_remove(self, img, pixel, tolerance=30):
         try:
             input = int(self.get_lasso_options())
+            self.master.config(cursor="watch")        
             img = img.convert('RGBA')
             self.previous_im = self.master.impil_processed
             ImageDraw.floodfill(img,pixel, (0,0,0,0), thresh=tolerance)
             self.master.impil_processed = img
             self.master.showImage(im=img,initial=True)
+            self.master.config(cursor="arrow")
+        
         except Exception as e:
             CTkMessagebox(title="Error", message=f"An error occurred while removing area selected with lasso tool: {e}", icon="cancel")   
     def remove_bg(self,*args):
+        self.master.config(cursor="watch")        
+                    
         input_image = self.master.impil_initial
         output_image = None
         input_array = None
@@ -115,36 +120,34 @@ class ImageProcessor():
                     #output_image = Image.fromarray(output_array)
                     if(output_image):    
                         self.master.impil_processed = output_image
-
                         self.master.showImage(im=output_image,initial=True)
+                    
                 except Exception as e:
                     CTkMessagebox(title="Error", message=f"An error occurred while removing background: {e}", icon="cancel")
             else:
                 CTkMessagebox(title="Info", message="Please load an image to remove background.")
         else:
             CTkMessagebox(title="Error", message=f"Remove background module is not loaded properly.", icon="cancel")
+        self.master.config(cursor="arrow")
+        
     def blur_edges(self, img, radius=3):
-        # Open image
-        
-        # Apply Gaussian blur
-        blurred_img = img.filter(ImageFilter.GaussianBlur(radius=radius))
+        try:
+            # Apply Gaussian blur
+            blurred_img = img.filter(ImageFilter.GaussianBlur(radius=radius))
 
-        # Stretch intensity range
-        blurred_np = np.array(blurred_img)
-        stretched_np = np.clip(2.0 * blurred_np - 127.5, 0, 255).astype(np.uint8)
-        stretched_img = Image.fromarray(stretched_np)        
-        return stretched_img
-        
+            # Stretch intensity range
+            blurred_np = np.array(blurred_img)
+            stretched_np = np.clip(2.0 * blurred_np - 127.5, 0, 255).astype(np.uint8)
+            stretched_img = Image.fromarray(stretched_np)        
+            return stretched_img
+        except Exception as e:
+            CTkMessagebox(title="Error", message=f"An error occurred while removing background: {e}", icon="cancel")
         
     def apply_mask(self, original_image, mask):
-        
         # Convert the original image to RGBA if it's not already in RGBA format
         if original_image.mode != "RGBA":
             original_image = original_image.convert("RGBA")
 
-        # Convert the mask to grayscale if it's not already in grayscale
-        #if mask.mode != "L":
-         #   mask = mask.convert("L")
         # Normalize mask values to range [0, 255]
         normalized_mask = mask.point(lambda p: p if p > 127 else 0)
 

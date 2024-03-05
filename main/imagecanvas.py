@@ -22,11 +22,14 @@ class ImageCanvas(Canvas):
     def selectPoint(self):
         self.bind("<ButtonPress-1>", self.on_button_press_point)
         self.bind("<ButtonRelease-1>", self.on_button_release_point)
+        self.config(cursor="target")
     def on_button_press_point(self, event):
         w, h=int(self.cget('width')),int(self.cget('height'))
         w_im, h_im = self.impil_processed.size
         ratio = w/w_im
         point = (int(event.x/ratio) , int(event.y/ratio))
+        self.config(cursor="arrow")
+
         self.image_processor.lasso_remove(self.impil_processed,point)
         
         
@@ -75,12 +78,6 @@ class ImageCanvas(Canvas):
                     newsize=(int(w/x),int(h/x))
                     self.resize(newsize)
                     self.current_size=newsize
-            else:
-                if not self.current_size:
-                    self.current_size=im.size
-                    self.resize(im.size)
-            
-        
             
     def resize(self,size):
         self.current_size=size
