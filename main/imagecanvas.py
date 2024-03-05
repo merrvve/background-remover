@@ -4,13 +4,14 @@ from tkinter import PhotoImage, Canvas
 from PIL import Image, ImageTk
 
 class ImageCanvas(Canvas):
-    def __init__(self, master, **kwargs):
+    def __init__(self, master, log, **kwargs):
         super().__init__(master, **kwargs)
+        self.log = log
         self.impil_initial = None
         self.impil_processed = None
         self.current_size = None
         
-        self.image_processor= ImageProcessor(master=self)        
+        self.image_processor= ImageProcessor(master=self, log=log, img=None)        
 
         
         self.rect = None
@@ -20,32 +21,37 @@ class ImageCanvas(Canvas):
         self.x = self.y = 0
       
     def selectPoint(self):
+        #self.master.master.master.master.change_log("Click on a point in the area you want to make transparent.")
+        self.log.configure(text="Click on a point in the area you want to make transparent.")
         self.bind("<ButtonPress-1>", self.on_button_press_point)
         self.bind("<ButtonRelease-1>", self.on_button_release_point)
         self.config(cursor="target")
+        
     def on_button_press_point(self, event):
         w, h=int(self.cget('width')),int(self.cget('height'))
         w_im, h_im = self.impil_processed.size
         ratio = w/w_im
         point = (int(event.x/ratio) , int(event.y/ratio))
         self.config(cursor="arrow")
-
+                
         self.image_processor.lasso_remove(self.impil_processed,point)
-        
         
         
     def on_button_release_point(self, event):
         self.unbind("<ButtonPress-1>")
         self.unbind("<ButtonRelease-1>")  
+
         
     def selectArea(self):
         self.bind("<ButtonPress-1>", self.on_button_press)
         self.bind("<B1-Motion>", self.on_move_press)
         self.bind("<ButtonRelease-1>", self.on_button_release)
+        
     def unselectArea(self):
         self.unbind("<ButtonPress-1>")
         self.unbind("<B1-Motion>")
-        self.unbind("<ButtonRelease-1>")        
+        self.unbind("<ButtonRelease-1>")     
+        
     def on_button_press(self, event):
         # save mouse drag start position
         self.start_x = event.x
@@ -66,19 +72,21 @@ class ImageCanvas(Canvas):
     def showImage(self, im, initial=False):
         if im:            
             w,h = im.size
+            self.current_size=im.size
             self.delete("all")
             image = ImageTk.PhotoImage(im)            
             self.config(width=w, height=h)
             self.create_image(0, 0, anchor="nw", image=image)
             self.impil_processed = im
-            self.image=image
+            self.image_processor.current_img = im
             if initial:
                 if h>800:
                     x =h/800
                     newsize=(int(w/x),int(h/x))
                     self.resize(newsize)
                     self.current_size=newsize
-            
+            self.log.configure(text="Ready")
+        
     def resize(self,size):
         self.current_size=size
         self.delete("all")

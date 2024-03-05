@@ -24,8 +24,10 @@ def import_custom_modules():
 
 
 class ImageProcessor():
-    def __init__(self, master, **kwargs):
+    def __init__(self, master, img, log, **kwargs):
         self.master=master
+        self.current_img = img
+        self.log=log
         self.previous_im = None
         
         
@@ -60,23 +62,30 @@ class ImageProcessor():
     def get_options(self):
         #dialog = customtkinter.CTkInputDialog(text="Edge blur radius", title="Blur radius")
         #input = dialog.get_input()
-        dialog = RemoveOptionsDialog(self.master)
-        dialog.lift()
-        dialog.focus_force()
-        dialog.grab_set()
-        self.master.wait_window(dialog)
-        inputs=dialog.get_inputs()
-        return inputs
-        
+        self.log.configure(text="Select options for removing background.")
+        try:
+            dialog = RemoveOptionsDialog(self.master)
+            dialog.lift()
+            dialog.focus_force()
+            dialog.grab_set()
+            self.master.wait_window(dialog)
+            inputs=dialog.get_inputs()
+            
+            return inputs
+        except Exception as e:
+            CTkMessagebox(title="Error", message=f"An error occurred while starting options dialog:  {e}", icon="cancel")    
     def get_lasso_options(self):
-        dialog = LassoOptionsDialog(self.master)
-        dialog.lift()
-        dialog.focus_force()
-        dialog.grab_set()
-        self.master.wait_window(dialog)
-        input=dialog.get_input()
-        return input
-        
+        self.log.configure(text="Select options for lasso remove tool.")
+        try:
+            dialog = LassoOptionsDialog(self.master)
+            dialog.lift()
+            dialog.focus_force()
+            dialog.grab_set()
+            self.master.wait_window(dialog)
+            input=dialog.get_input()
+            return input
+        except Exception as e:
+            CTkMessagebox(title="Error", message=f"An error occurred while starting options dialog:  {e}", icon="cancel")    
     def lasso_remove(self, img, pixel, tolerance=30):
         try:
             input = int(self.get_lasso_options())
@@ -90,7 +99,7 @@ class ImageProcessor():
         
         except Exception as e:
             CTkMessagebox(title="Error", message=f"An error occurred while removing area selected with lasso tool: {e}", icon="cancel")   
-    def remove_bg(self,*args):
+    def remove_bg(self):
         self.master.config(cursor="watch")        
                     
         input_image = self.master.impil_initial
@@ -99,14 +108,18 @@ class ImageProcessor():
         output_array = None
         global remove 
         global imported
+                    
         if imported:
             if (input_image):
                 self.previous_im = input_image
+                
                 try:
                     # Convert the input image to a numpy array
                     input_array = np.array(input_image)
                     # Apply background removal using rembg
                     inputs = self.get_options()
+                    self.log.configure(text="Removing background, please wait...")
+        
                     only_mask=False if inputs[2]==True else True
                     output_array = remove(input_array,
                                 only_mask=only_mask,
@@ -129,6 +142,7 @@ class ImageProcessor():
         else:
             CTkMessagebox(title="Error", message=f"Remove background module is not loaded properly.", icon="cancel")
         self.master.config(cursor="arrow")
+        self.log.configure(text="Ready")
         
     def blur_edges(self, img, radius=3):
         try:
