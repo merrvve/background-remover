@@ -62,6 +62,35 @@ class FloatSpinbox(customtkinter.CTkFrame):
         self.entry.delete(0, "end")
         self.entry.insert(0, str(float(value)))
 
+class LassoOptionsDialog(customtkinter.CTkToplevel):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.title('Lasso Remove Tool Options')
+        self.geometry('400x150')
+        
+        self.input = 20  
+        self.tol_label = customtkinter.CTkLabel(self, text="Tolerence:")
+        self.tol_label.grid(row=0,column=0,padx=10,pady=5)
+
+        self.spinbox = FloatSpinbox(self, width=150, step_size=1)
+        self.spinbox.grid(row=0,column=1,padx=10, pady=5)
+        
+        self.spinbox.set(30)
+
+        self.button = customtkinter.CTkButton(self, text="OK", command=self.ok_button_click)
+        self.button.grid(row=3,column=1, padx=30, pady=30)
+
+    def get_input(self):
+        return self.input        
+
+    def ok_button_click(self):
+        try:
+            self.input = self.spinbox.get()
+        except ValueError:
+            pass
+        self.destroy()
+
+
 class RemoveOptionsDialog(customtkinter.CTkToplevel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -61,10 +61,11 @@ class ImageCanvas(Canvas):
         self.rect=None
         self.unselectArea()
     def showImage(self, im, initial=False):
-        if im:   
+        if im:            
             w,h = im.size
             self.delete("all")
             image = ImageTk.PhotoImage(im)            
+            self.config(width=w, height=h)
             self.create_image(0, 0, anchor="nw", image=image)
             self.impil_processed = im
             self.image=image
@@ -74,16 +75,10 @@ class ImageCanvas(Canvas):
                     newsize=(int(w/x),int(h/x))
                     self.resize(newsize)
                     self.current_size=newsize
-                    
             else:
                 if not self.current_size:
                     self.current_size=im.size
                     self.resize(im.size)
-                    #w,h = im.size
-                    #self.config(width=w, height=h)
-        
-            
-            
             
         
             

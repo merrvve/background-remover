@@ -3,7 +3,7 @@ from PIL import Image, ImageDraw, ImageFilter
 import skimage.exposure
 from CTkMessagebox import CTkMessagebox
 from tkinter import filedialog
-from removeoptions import RemoveOptionsDialog
+from optionsdialog import RemoveOptionsDialog, LassoOptionsDialog
 from CTkColorPicker import *
 from utils import hex_to_rgba
 imported = False
@@ -68,17 +68,25 @@ class ImageProcessor():
         inputs=dialog.get_inputs()
         return inputs
         
-    def lasso_select(self, image, seed_point, tolerance=20):
-        return image
+    def get_lasso_options(self):
+        dialog = LassoOptionsDialog(self.master)
+        dialog.lift()
+        dialog.focus_force()
+        dialog.grab_set()
+        self.master.wait_window(dialog)
+        input=dialog.get_input()
+        return input
         
     def lasso_remove(self, img, pixel, tolerance=30):
-        img = img.convert('RGBA')
-        self.previous_im = self.master.impil_processed
-        ImageDraw.floodfill(img,pixel, (0,0,0,0), thresh=tolerance)
-        self.master.impil_processed = img
-        self.master.showImage(im=img,initial=False)
-        print(pixel)
-        
+        try:
+            input = int(self.get_lasso_options())
+            img = img.convert('RGBA')
+            self.previous_im = self.master.impil_processed
+            ImageDraw.floodfill(img,pixel, (0,0,0,0), thresh=tolerance)
+            self.master.impil_processed = img
+            self.master.showImage(im=img,initial=True)
+        except Exception as e:
+            CTkMessagebox(title="Error", message=f"An error occurred while removing area selected with lasso tool: {e}", icon="cancel")   
     def remove_bg(self,*args):
         input_image = self.master.impil_initial
         output_image = None
@@ -91,15 +99,16 @@ class ImageProcessor():
                 self.previous_im = input_image
                 try:
                     # Convert the input image to a numpy array
-                    #input_array = array(input_image)
+                    input_array = np.array(input_image)
                     # Apply background removal using rembg
                     inputs = self.get_options()
                     only_mask=False if inputs[2]==True else True
-                    output_image = remove(input_image,
+                    output_array = remove(input_array,
                                 only_mask=only_mask,
                                 post_process_mask=inputs[1],
                                 alpha_matting=inputs[2])  
                     # Create a PIL Image from the output array
+                    output_image = Image.fromarray(output_array)
                     if (only_mask):
                         output_image = self.blur_edges(output_image,radius=int(inputs[0]))
                         output_image = self.apply_mask(input_image,output_image)
