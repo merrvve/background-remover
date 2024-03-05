@@ -1,6 +1,26 @@
-from main import remove, imported
 import numpy as np
-from PIL import Image , ImageOps, ImageTk, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter
+import skimage.exposure
+from CTkMessagebox import CTkMessagebox
+from tkinter import filedialog
+from removeoptions import RemoveOptionsDialog
+from CTkColorPicker import *
+from utils import hex_to_rgba
+imported = False
+remove = None
+
+
+
+    
+def import_custom_modules():
+    global imported
+    global remove
+    try:
+        from rembg import remove
+        imported = True
+    except ImportError:
+        imported = False
+        CTkMessagebox(title="Error", message="An error occured while loading remove background module.")
 
 
 class ImageProcessor():

@@ -1,6 +1,9 @@
 import customtkinter
 from tkinter import filedialog
 from PIL import Image
+from pathlib import Path
+from CTkMessagebox import CTkMessagebox
+
 class NavbarFrame(customtkinter.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
@@ -58,7 +61,7 @@ class NavbarFrame(customtkinter.CTkFrame):
         if(self.master.image_canvas.impil_processed):
             files = [('PNG Files','*.png'), ('.JPG Files', '*.jpg'), ('.JPEG Files', '*.jpeg'),('.GIF Files', '*.gif'),('.BMP Files', '*.bmp')]
             file = filedialog.asksaveasfilename(filetypes = files, defaultextension = files) 
-            extension = pathlib.Path(file).suffix
+            extension = Path(file).suffix
             if (file):
                 if extension == '.png':
                     try:
