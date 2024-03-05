@@ -23,14 +23,11 @@ class ImageCanvas(Canvas):
         self.bind("<ButtonPress-1>", self.on_button_press_point)
         self.bind("<ButtonRelease-1>", self.on_button_release_point)
     def on_button_press_point(self, event):
-        # save mouse drag start position
-        self.start_x = event.x
-        self.start_y = event.y
         w, h=int(self.cget('width')),int(self.cget('height'))
         w_im, h_im = self.impil_processed.size
         ratio = w/w_im
         point = (int(event.x/ratio) , int(event.y/ratio))
-        self.image_processor.lasso_remove(point)
+        self.image_processor.lasso_remove(self.impil_processed,point)
         
         
         
@@ -64,20 +61,30 @@ class ImageCanvas(Canvas):
         self.rect=None
         self.unselectArea()
     def showImage(self, im, initial=False):
-        if im:
-            
+        if im:   
             w,h = im.size
-            self.current_size=im.size
             self.delete("all")
             image = ImageTk.PhotoImage(im)            
-            self.config(width=w, height=h)
             self.create_image(0, 0, anchor="nw", image=image)
             self.impil_processed = im
             self.image=image
             if initial:
                 if h>800:
                     x =h/800
-                    self.resize((int(w/x),int(h/x)))
+                    newsize=(int(w/x),int(h/x))
+                    self.resize(newsize)
+                    self.current_size=newsize
+                    
+            else:
+                if not self.current_size:
+                    self.current_size=im.size
+                    self.resize(im.size)
+                    #w,h = im.size
+                    #self.config(width=w, height=h)
+        
+            
+            
+            
         
             
     def resize(self,size):
@@ -93,7 +100,8 @@ class ImageCanvas(Canvas):
     def zoom_in(self):
         if self.impil_processed:
             w,h = self.current_size
-            self.resize(size=(w*2,h*2))
+            if not w>4000:
+                self.resize(size=(w*2,h*2))
             
 
     def zoom_out(self):

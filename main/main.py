@@ -2,15 +2,11 @@ import customtkinter
 from menubar import MenubarFrame
 from navbar import NavbarFrame
 from zoomframe import ZoomFrame
-from imageprocessor import ImageProcessor, import_custom_modules
+from imageprocessor import import_custom_modules
 from imagecanvas import ImageCanvas
 from utils import resource_path
 from CTkXYFrame import *
 from threading import Thread
-#import skimage.exposure
-
-
-#from PIL import Image , ImageOps, ImageTk, ImageDraw, ImageFilter
 
 customtkinter.set_appearance_mode("light")  
 customtkinter.set_default_color_theme("dark-blue")
@@ -36,7 +32,6 @@ class App(customtkinter.CTk):
         self.title("Background Remover")
         
         self.log = ""
-        #self.image_processor= ImageProcessor(master=self)
 
         self.sframe = CTkXYFrame(self)
         self.sframe.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")

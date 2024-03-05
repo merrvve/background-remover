@@ -67,7 +67,16 @@ class ImageProcessor():
         self.master.wait_window(dialog)
         inputs=dialog.get_inputs()
         return inputs
-    def lasso_remove(self,pixel):
+        
+    def lasso_select(self, image, seed_point, tolerance=20):
+        return image
+        
+    def lasso_remove(self, img, pixel, tolerance=30):
+        img = img.convert('RGBA')
+        self.previous_im = self.master.impil_processed
+        ImageDraw.floodfill(img,pixel, (0,0,0,0), thresh=tolerance)
+        self.master.impil_processed = img
+        self.master.showImage(im=img,initial=False)
         print(pixel)
         
     def remove_bg(self,*args):

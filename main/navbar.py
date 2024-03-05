@@ -29,7 +29,7 @@ class NavbarFrame(customtkinter.CTkFrame):
         self.button_rotate = customtkinter.CTkButton(self, text="Rotate", command=self.master.image_canvas.image_processor.rotate)
         self.button_rotate.grid(row=5, column=0, padx=10, pady=10, sticky="w")
 
-        self.button_select = customtkinter.CTkButton(self, text="Select", command=self.master.image_canvas.selectPoint)
+        self.button_select = customtkinter.CTkButton(self, text="Lasso Remove", command=self.master.image_canvas.selectPoint)
         self.button_select.grid(row=6, column=0, padx=10, pady=10, sticky="w")
 
         self.button_undo = customtkinter.CTkButton(self, text="Undo", command=self.master.image_canvas.image_processor.undo)
