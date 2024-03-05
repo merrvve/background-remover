@@ -25,12 +25,12 @@ class MenubarFrame(Menu):
         self.edit_menu = Menu(self, tearoff=0)
         self.edit_menu.add_command(
             label='Undo',
-            command=self.master.image_processor.undo,
+            command=self.master.image_canvas.image_processor.undo,
             font=("Arial", 14)
         )
         self.edit_menu.add_command(
             label='Reset',
-            command=self.master.image_processor.reset,
+            command=self.master.image_canvas.image_processor.reset,
             font=("Arial", 14)
         )
         self.edit_menu.add_command(
@@ -40,18 +40,18 @@ class MenubarFrame(Menu):
         )   
         self.edit_menu.add_command(
             label='Remove Background',
-            command=self.master.image_processor.remove_bg,
+            command=self.master.image_canvas.image_processor.remove_bg,
             font=("Arial", 14)
         )        
         self.edit_menu.add_command(
             label='Add Background Image',
-            command=self.master.image_processor.add_bgimg,
+            command=self.master.image_canvas.image_processor.add_bgimg,
             font=("Arial", 14)
         )        
 
         self.edit_menu.add_command(
             label='Add Background Color',
-            command=self.master.image_processor.add_bgcolor,
+            command=self.master.image_canvas.image_processor.add_bgcolor,
             font=("Arial", 14)
         )        
         self.add_cascade(label="Edit", menu=self.edit_menu)

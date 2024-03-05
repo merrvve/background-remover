@@ -7,32 +7,32 @@ class NavbarFrame(customtkinter.CTkFrame):
         self.button_open = customtkinter.CTkButton(self, text="Open File", command=self.open_image)
         self.button_open.grid(row=0, column=0, padx=10, pady=10, sticky="w")
 
-        self.button_rembg = customtkinter.CTkButton(self, text="Remove Background", command=self.master.image_processor.remove_bg)
+        self.button_rembg = customtkinter.CTkButton(self, text="Remove Background", command=self.master.image_canvas.image_processor.remove_bg)
         self.button_rembg.grid(row=1, column=0, padx=10, pady=10, sticky="w")
         
 
         self.button_save_as = customtkinter.CTkButton(self, text="Save As...", command=self.save_image_as)
         self.button_save_as.grid(row=2, column=0, padx=10, pady=10, sticky="w")
 
-        self.button_add_bgimg = customtkinter.CTkButton(self, text="Add Background Img", command=self.master.image_processor.add_bgimg)
+        self.button_add_bgimg = customtkinter.CTkButton(self, text="Add Background Img", command=self.master.image_canvas.image_processor.add_bgimg)
         self.button_add_bgimg.grid(row=3, column=0, padx=10, pady=10, sticky="w")
 
-        self.button_add_bgcolor = customtkinter.CTkButton(self, text="Add Background Color", command=self.master.image_processor.add_bgcolor)
+        self.button_add_bgcolor = customtkinter.CTkButton(self, text="Add Background Color", command=self.master.image_canvas.image_processor.add_bgcolor)
         self.button_add_bgcolor.grid(row=4, column=0, padx=10, pady=10, sticky="w")
 
-#        self.button_add_shadow = customtkinter.CTkButton(self, text="Add Shadow", command=self.master.image_processor.add_shadow)
+#        self.button_add_shadow = customtkinter.CTkButton(self, text="Add Shadow", command=self.master.image_canvas.image_processor.add_shadow)
 #        self.button_add_shadow.grid(row=5, column=0, padx=10, pady=10, sticky="w")
 
-        self.button_rotate = customtkinter.CTkButton(self, text="Rotate", command=self.master.image_processor.rotate)
+        self.button_rotate = customtkinter.CTkButton(self, text="Rotate", command=self.master.image_canvas.image_processor.rotate)
         self.button_rotate.grid(row=5, column=0, padx=10, pady=10, sticky="w")
 
         self.button_select = customtkinter.CTkButton(self, text="Select", command=self.master.image_canvas.selectPoint)
         self.button_select.grid(row=6, column=0, padx=10, pady=10, sticky="w")
 
-        self.button_undo = customtkinter.CTkButton(self, text="Undo", command=self.master.image_processor.undo)
+        self.button_undo = customtkinter.CTkButton(self, text="Undo", command=self.master.image_canvas.image_processor.undo)
         self.button_undo.grid(row=7, column=0, padx=10, pady=10, sticky="w")
 
-        self.button_reset = customtkinter.CTkButton(self, text="Reset", command=self.master.image_processor.reset)
+        self.button_reset = customtkinter.CTkButton(self, text="Reset", command=self.master.image_canvas.image_processor.reset)
         self.button_reset.grid(row=8, column=0, padx=10, pady=10, sticky="w")
                 
 
