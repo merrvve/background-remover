@@ -3,12 +3,19 @@ from tkinter import filedialog
 from PIL import Image
 from pathlib import Path
 from CTkMessagebox import CTkMessagebox
+from multipleimages import MultipleImagesDialog
 
 class NavbarFrame(customtkinter.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
+        
+        self.f_types = [('All Image Files', '*.{.bmp .dib .gif .jfif .jpe .jpg .jpeg .png .apng  .hdf .jp2 .j2k .jpc .jpf .jpx .j2c .icns .ico .im .iim .mpg .mpeg .tif .tiff}'), ('.BMP Files', '*.bmp'), ('.DIB Files', '*.dib'), ('.GIF Files', '*.gif'), ('.JFIF Files', '*.jfif'), ('.JPE Files', '*.jpe'), ('.JPG Files', '*.jpg'), ('.JPEG Files', '*.jpeg'), ('.PNG Files', '*.png'), ('.APNG Files', '*.apng'), ('.HDF Files', '*.hdf'), ('.JP2 Files', '*.jp2'), ('.J2K Files', '*.j2k'), ('.JPC Files', '*.jpc'), ('.JPF Files', '*.jpf'), ('.JPX Files', '*.jpx'), ('.J2C Files', '*.j2c'), ('.ICNS Files', '*.icns'), ('.ICO Files', '*.ico'), ('.TIF Files', '*.tif'), ('.TIFF Files', '*.tiff')]
+
+        
         self.button_open = customtkinter.CTkButton(self, text="Open File", command=self.open_image)
         self.button_open.grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        
+        
 
         self.button_rembg = customtkinter.CTkButton(self, text="Remove Background", command=self.master.image_canvas.image_processor.remove_bg)
         self.button_rembg.grid(row=1, column=0, padx=10, pady=10, sticky="w")
@@ -35,26 +42,38 @@ class NavbarFrame(customtkinter.CTkFrame):
         self.button_undo = customtkinter.CTkButton(self, text="Undo", command=self.master.image_canvas.image_processor.undo)
         self.button_undo.grid(row=7, column=0, padx=10, pady=10, sticky="w")
 
+        self.button_folder = customtkinter.CTkButton(self, text="Open Folder", command=self.open_folder)
+        self.button_folder.grid(row=8, column=0, padx=10, pady=10, sticky="w")
+
         self.button_reset = customtkinter.CTkButton(self, text="Reset", command=self.master.image_canvas.image_processor.reset)
-        self.button_reset.grid(row=8, column=0, padx=10, pady=10, sticky="w")
+        self.button_reset.grid(row=9, column=0, padx=10, pady=10, sticky="w")
                 
 
 
     def open_image(self,*args):
-        f_types = [('All Image Files', '*.{.bmp .dib .gif .jfif .jpe .jpg .jpeg .png .apng  .hdf .jp2 .j2k .jpc .jpf .jpx .j2c .icns .ico .im .iim .mpg .mpeg .tif .tiff}'), ('.BMP Files', '*.bmp'), ('.DIB Files', '*.dib'), ('.GIF Files', '*.gif'), ('.JFIF Files', '*.jfif'), ('.JPE Files', '*.jpe'), ('.JPG Files', '*.jpg'), ('.JPEG Files', '*.jpeg'), ('.PNG Files', '*.png'), ('.APNG Files', '*.apng'), ('.HDF Files', '*.hdf'), ('.JP2 Files', '*.jp2'), ('.J2K Files', '*.j2k'), ('.JPC Files', '*.jpc'), ('.JPF Files', '*.jpf'), ('.JPX Files', '*.jpx'), ('.J2C Files', '*.j2c'), ('.ICNS Files', '*.icns'), ('.ICO Files', '*.ico'), ('.TIF Files', '*.tif'), ('.TIFF Files', '*.tiff')]
         #supported_formats = Image.registered_extensions()
 
         # Construct a list of tuples in the format you provided
         #f_types = [(f"{format.upper()} Files", f"*{format.lower()}") for format in supported_formats]
         #f_types.insert(0, ("All Image Files", "*.{" + " ".join(supported_formats).lower() + "}"))
 
-        filename= filedialog.askopenfilename(filetypes=f_types)
+        filename= filedialog.askopenfilename(filetypes=self.f_types)
         if (filename):
             im = Image.open(filename)
             self.master.image_canvas.impil_initial = im
 
             self.master.image_canvas.showImage(im=im, initial=True)
-                        
+
+    def open_folder(self,*args):
+        try:
+            dialog = MultipleImagesDialog(self.master)
+            dialog.lift()
+            dialog.focus_force()
+            dialog.grab_set()
+            self.master.wait_window(dialog)
+            return
+        except Exception as e:
+            CTkMessagebox(title="Error", message=f"An error occurred while starting options dialog:  {e}", icon="cancel")    
                 
     def save_image_as(self,*args):
         file = None

@@ -2,23 +2,18 @@ import customtkinter
 from menubar import MenubarFrame
 from navbar import NavbarFrame
 from zoomframe import ZoomFrame
+from loadingwindow import LoadingWindow
 from imageprocessor import import_custom_modules
 from imagecanvas import ImageCanvas
 from utils import resource_path
 from CTkXYFrame import *
 from threading import Thread
+
 customtkinter.set_appearance_mode("light")  
 customtkinter.set_default_color_theme("dark-blue")
 
 
-class LoadingWindow(customtkinter.CTkToplevel):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.geometry("300x100")
-        self.title('Process')
-        self.config(cursor="watch")
-        self.label = customtkinter.CTkLabel(self, text="Loading modules...")
-        self.label.pack(padx=20, pady=20)
+
 
 
 class App(customtkinter.CTk):
@@ -69,7 +64,7 @@ class App(customtkinter.CTk):
             self.is_dark=True
             
     def import_modules(self):
-        toplevel_window = LoadingWindow(self)
+        toplevel_window = LoadingWindow(msg="Loading modules...")
         toplevel_window.focus()
         self.change_log("Loading necessary modules...")
         self.iconify()
