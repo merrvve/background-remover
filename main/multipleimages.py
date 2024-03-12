@@ -2,7 +2,9 @@ import customtkinter
 from tkinter import filedialog
 from loadingwindow import LoadingWindow
 from CTkMessagebox import CTkMessagebox
-
+from imageprocessor import ImageProcessor
+from PIL import Image
+import os
 class MultipleImagesDialog(customtkinter.CTkToplevel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -10,7 +12,7 @@ class MultipleImagesDialog(customtkinter.CTkToplevel):
         self.geometry('500x300')
         self.image_folder=""
         self.result_folder_name=""
-        
+        self.impil_processed = None
 
         self.open_label_name = customtkinter.CTkLabel(self, text=self.image_folder)
         self.open_label_name.grid(row=0,column=1,padx=5,pady=5)
@@ -46,17 +48,29 @@ class MultipleImagesDialog(customtkinter.CTkToplevel):
     def result_folder(self):
         self.result_folder_name = self.folder()
         self.result_label_name.configure(text="Result Folder: " + self.result_folder_name.split('/')[-1])
-
+    def showImage(self, im, initial=False):
+        pass
     def remove_backgrounds(self):
-        try:
-            dialog = LoadingWindow(msg="Removing background from images... Please do not close this dialog...")
-            dialog.lift()
-            dialog.focus_force()
-            dialog.grab_set()
-            #remove_backgrounds
-            dialog.destroy()
-        except Exception as e:
-            CTkMessagebox(title="Error", message=f"An error occurred while removing backgrounds:  {e}", icon="cancel")   
-
+  #      try:
+        dialog = LoadingWindow(msg="Removing background from images...\n Please do not close this dialog...")
+        dialog.lift()
+        dialog.focus_force()
+        dialog.grab_set()
+        for filename in os.listdir(self.image_folder):  
+            filesplit = filename.split('.') 
+            if filesplit[-1] == 'jpg':
+                output = self.remove_background(filename)
+                f= filename[0][:-4]+'.png'
+                name = os.path.join(self.result_folder_name,f)
+                
+                output.save(name,format='PNG')
+        dialog.destroy()
+ #       except Exception as e:
+ #           CTkMessagebox(title="Error", message=f"An error occurred while removing backgrounds:  {e}", icon="cancel")   
+    def remove_background(self, filename):
+        img = Image.open(os.path.join(self.image_folder,filename))
+        image_processor = ImageProcessor(master=self,img=img,log=None)
+        result = image_processor.remove_bg(options=False)
+        return result    
     def ok_button_click(self):
         self.destroy()

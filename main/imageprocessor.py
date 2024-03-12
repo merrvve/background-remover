@@ -26,7 +26,7 @@ def import_custom_modules():
 class ImageProcessor():
     def __init__(self, master, img, log, **kwargs):
         self.master=master
-        self.current_img = img
+        self.impil_initial = img
         self.log=log
         self.previous_im = None
         
@@ -62,7 +62,7 @@ class ImageProcessor():
     def get_options(self):
         #dialog = customtkinter.CTkInputDialog(text="Edge blur radius", title="Blur radius")
         #input = dialog.get_input()
-        self.log.configure(text="Select options for removing background.")
+        #self.log.configure(text="Select options for removing background.")
         try:
             dialog = RemoveOptionsDialog(self.master)
             dialog.lift()
@@ -99,10 +99,10 @@ class ImageProcessor():
         
         except Exception as e:
             CTkMessagebox(title="Error", message=f"An error occurred while removing area selected with lasso tool: {e}", icon="cancel")   
-    def remove_bg(self):
+    def remove_bg(self, options=True):
         self.master.config(cursor="watch")        
                     
-        input_image = self.master.impil_initial
+        input_image = self.impil_initial if self.impil_initial else self.master.impil_initial
         output_image = None
         input_array = None
         output_array = None
@@ -116,9 +116,10 @@ class ImageProcessor():
                 try:
                     # Convert the input image to a numpy array
                     input_array = np.array(input_image)
-                    # Apply background removal using rembg
-                    inputs = self.get_options()
-                    self.log.configure(text="Removing background, please wait...")
+                    inputs= [5,False,False]
+                    if options:
+                        inputs = self.get_options()
+                    #self.log.configure(text="Removing background, please wait...")
         
                     only_mask=False if inputs[2]==True else True
                     output_array = remove(input_array,
@@ -134,6 +135,9 @@ class ImageProcessor():
                     if(output_image):    
                         self.master.impil_processed = output_image
                         self.master.showImage(im=output_image,initial=True)
+                        return output_image
+                    else:
+                        return input_image
                     
                 except Exception as e:
                     CTkMessagebox(title="Error", message=f"An error occurred while removing background: {e}", icon="cancel")
@@ -142,7 +146,7 @@ class ImageProcessor():
         else:
             CTkMessagebox(title="Error", message=f"Remove background module is not loaded properly.", icon="cancel")
         self.master.config(cursor="arrow")
-        self.log.configure(text="Ready")
+        #self.log.configure(text="Ready")
         
     def blur_edges(self, img, radius=3):
         try:

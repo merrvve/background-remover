@@ -4,7 +4,7 @@ class LoadingWindow(customtkinter.CTkToplevel):
     def __init__(self, msg, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.msg=msg
-        self.geometry("300x100")
+        self.geometry("400x100")
         self.title('Process')
         self.config(cursor="watch")
         self.label = customtkinter.CTkLabel(self, text=self.msg)
