@@ -85,7 +85,28 @@ class ImageProcessor():
             input=dialog.get_input()
             return input
         except Exception as e:
-            CTkMessagebox(title="Error", message=f"An error occurred while starting options dialog:  {e}", icon="cancel")    
+            CTkMessagebox(title="Error", message=f"An error occurred while starting options dialog:  {e}", icon="cancel")   
+
+    def removeWhitePixels(self,img):
+        width, height = img.size
+
+        new_img = Image.new("RGBA", img.size, (0, 0, 0, 0))  # Transparent background
+
+        # Define white threshold (adjustable based on image)
+        white_threshold = 240
+
+        for y in range(height):
+            for x in range(width):
+                r, g, b, a = img.getpixel((x, y))
+                # Check if all color values are above the white threshold
+                if r > white_threshold and g > white_threshold and b > white_threshold:
+                    # Set transparent pixel for white background
+                    new_img.putpixel((x, y), (0, 0, 0, 0))
+                else:
+                    # Copy original pixel for non-white areas
+                    new_img.putpixel((x, y), img.getpixel((x, y)))
+
+        return new_img 
     def lasso_remove(self, img, pixel, tolerance=30):
         try:
             input = int(self.get_lasso_options())
@@ -100,7 +121,7 @@ class ImageProcessor():
         except Exception as e:
             CTkMessagebox(title="Error", message=f"An error occurred while removing area selected with lasso tool: {e}", icon="cancel")   
     def remove_bg(self, options=True):
-        self.master.config(cursor="watch")        
+        #self.master.config(cursor="watch")        
                     
         input_image = self.impil_initial if self.impil_initial else self.master.impil_initial
         output_image = None
@@ -116,7 +137,7 @@ class ImageProcessor():
                 try:
                     # Convert the input image to a numpy array
                     input_array = np.array(input_image)
-                    inputs= [5,False,False]
+                    inputs= [5,False,False,True]
                     if options:
                         inputs = self.get_options()
                     #self.log.configure(text="Removing background, please wait...")
@@ -132,6 +153,8 @@ class ImageProcessor():
                         output_image = self.blur_edges(output_image,radius=int(inputs[0]))
                         output_image = self.apply_mask(input_image,output_image)
                     #output_image = Image.fromarray(output_array)
+                    if(inputs[3]):
+                        output_image=self.removeWhitePixels(output_image)
                     if(output_image):    
                         self.master.impil_processed = output_image
                         self.master.showImage(im=output_image,initial=True)
@@ -145,7 +168,7 @@ class ImageProcessor():
                 CTkMessagebox(title="Info", message="Please load an image to remove background.")
         else:
             CTkMessagebox(title="Error", message=f"Remove background module is not loaded properly.", icon="cancel")
-        self.master.config(cursor="arrow")
+        #self.master.config(cursor="arrow")
         #self.log.configure(text="Ready")
         
     def blur_edges(self, img, radius=3):

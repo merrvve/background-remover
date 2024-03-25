@@ -71,21 +71,25 @@ class ImageCanvas(Canvas):
         self.unselectArea()
     def showImage(self, im, initial=False):
         if im:            
+            #self.delete("all")
             w,h = im.size
-            self.current_size=im.size
-            self.delete("all")
+            
             image = ImageTk.PhotoImage(im)            
-            self.config(width=w, height=h)
             self.create_image(0, 0, anchor="nw", image=image)
+            
+            self.image = im
             self.impil_processed = im
-            self.image_processor.current_img = im
+            self.resize(im.size)
+
             if initial:
                 if h>800:
                     x =h/800
                     newsize=(int(w/x),int(h/x))
                     self.resize(newsize)
                     self.current_size=newsize
-            self.log.configure(text="Ready")
+            #self.log.configure(text="Ready")
+        else:
+            print('No image')
         
     def resize(self,size):
         self.current_size=size

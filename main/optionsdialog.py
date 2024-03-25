@@ -96,7 +96,7 @@ class RemoveOptionsDialog(customtkinter.CTkToplevel):
         super().__init__(*args, **kwargs)
         self.title('Options')
         self.geometry('400x250')
-        self.inputs = [0, False, False]  # Initialize inputs with None
+        self.inputs = [0, False, False,True]  # Initialize inputs with None
         self.radius_label = customtkinter.CTkLabel(self, text="Edge blur radius:")
         self.radius_label.grid(row=0,column=0,padx=10,pady=5)
         #self.input_radius = customtkinter.CTkEntry(self, placeholder_text="0")
@@ -120,8 +120,15 @@ class RemoveOptionsDialog(customtkinter.CTkToplevel):
         self.alpha_mat = customtkinter.CTkSwitch(self, text="", variable=self.alpha_mat_var, onvalue=True, offvalue=False)
         self.alpha_mat.grid(row=2,column=1,padx=10,pady=5)
 
+        self.remove_white_label = customtkinter.CTkLabel(self, text="Remove remaining white pixels:")
+        self.remove_white_label.grid(row=3,column=0,padx=10,pady=5)
+        
+        self.remove_white_var = customtkinter.BooleanVar(value=True)
+        self.remove_white_switch = customtkinter.CTkSwitch(self, text="", variable=self.remove_white_var, onvalue=True, offvalue=False)
+        self.remove_white_switch.grid(row=3,column=1,padx=10,pady=5)
+
         self.button = customtkinter.CTkButton(self, text="OK", command=self.ok_button_click)
-        self.button.grid(row=3,column=1, padx=30, pady=30)
+        self.button.grid(row=4,column=1, padx=30, pady=30)
 
     def get_inputs(self):
         return self.inputs
@@ -132,7 +139,8 @@ class RemoveOptionsDialog(customtkinter.CTkToplevel):
             num1 = int(num1) if num1 else 0
             num2 = self.switch_var.get()
             num3 = self.alpha_mat_var.get()
-            self.inputs = [num1, num2, num3]
+            num4= self.remove_white_var.get()
+            self.inputs = [num1, num2, num3, num4]
         except ValueError:
             # Handle non-numeric inputs
             pass

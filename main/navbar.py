@@ -42,8 +42,8 @@ class NavbarFrame(customtkinter.CTkFrame):
         self.button_undo = customtkinter.CTkButton(self, text="Undo", command=self.master.image_canvas.image_processor.undo)
         self.button_undo.grid(row=7, column=0, padx=10, pady=10, sticky="w")
 
-        self.button_folder = customtkinter.CTkButton(self, text="Open Folder", command=self.open_folder)
-        self.button_folder.grid(row=8, column=0, padx=10, pady=10, sticky="w")
+#        self.button_folder = customtkinter.CTkButton(self, text="Open Folder", command=self.open_folder)
+#        self.button_folder.grid(row=8, column=0, padx=10, pady=10, sticky="w")
 
         self.button_reset = customtkinter.CTkButton(self, text="Reset", command=self.master.image_canvas.image_processor.reset)
         self.button_reset.grid(row=9, column=0, padx=10, pady=10, sticky="w")
